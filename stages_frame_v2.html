@@ -1,0 +1,15 @@
+<!doctype html><meta charset="utf-8">
+<script>
+(function() {
+  var data = [{stage_id:"테스트-1", flair:1, simple:1, elegant:1, lively:1, chic:1, cute:1, sexy:1, pure:1, cool:1, warm:1, weight:9, tip1:"데모 스테이지"},
+{stage_id:"[메인] 1-2 섬에서의 약속", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:20, sexy:0, pure:10, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 청순 10%", extras:["활발","심플","청량"], extras_pct:5},
+  {stage_id:"[메인] 1-4 이성과 감정", flair:0, simple:0, elegant:0, lively:0, chic:20, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 섹시 10%, 태그 걸그룹스타일 10%", extras:["화려","청량","활발"], extras_pct:5, tag:"걸그룹스타일", tag_pct:10},
+  {stage_id:"[메인] 1-6 의혹 속으로", flair:0, simple:10, elegant:0, lively:20, chic:0, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 활발 20%, 서브 심플 10%, 태그 운동룩 10%", extras:["큐티","청량","청순"], extras_pct:5, tag:"운동룩", tag_pct:10},
+  {stage_id:"[메인] 1-7 '흑역사'", flair:0, simple:0, elegant:20, lively:0, chic:0, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 우아 20%, 서브 섹시 10%, 태그 드레스 10%", extras:["청량","시크","심플"], extras_pct:5, tag:"드레스", tag_pct:10},
+  {stage_id:"[메인] 1-8 알지 못했던 일들", flair:0, simple:0, elegant:0, lively:10, chic:0, cute:20, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 활발 10%, 태그 애니멀 10%", extras:["포근","청순","화려"], extras_pct:5, tag:"애니멀", tag_pct:10},
+  {stage_id:"[메인] 1-9 어둠 속에서", flair:0, simple:10, elegant:0, lively:0, chic:20, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 심플 10%, 태그 젠더리스 10%", tag:"젠더리스", tag_pct:10},
+  {stage_id:"[메인] 1-10 창조자", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:10, sexy:0, pure:0, cool:0, warm:20, weight:9, tip1:"메인 포근 20%, 서브 큐티 10%"}
+];
+  parent.postMessage({ __splitData: true, key: 'stages', data: data }, '*');
+})();
+</script>
