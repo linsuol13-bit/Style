@@ -1,0 +1,2929 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>스타일라잇 점수계산</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,AppleSDGothicNeo,Segoe UI,Roboto,Apple Color Emoji,Noto Color Emoji,sans-serif;margin:0;background:#f7f7fb;color:#222}
+header{padding:14px 20px;background:#fff;border-bottom:1px solid #eee;top:0;z-index:3}
+h1{margin:0 0 6px 0;font-size:20px}
+nav.tabs{display:flex;gap:8px;padding:10px 20px;border-bottom:1px solid #eee;background:#fff;top:56px;z-index:2justify-content:center;}
+.tab{padding:8px 12px;border:1px solid #ddd;background:#fff;border-radius:10px;cursor:pointer} .tab.active{background:#f0f7ff;border-color:#cfe4ff}
+#controls{display:flex;gap:12px;align-items:end;flex-wrap:wrap;padding:12px 20px;background:#fff;top:100px;z-index:1;border-bottom:1px solid #eee}
+#controls>div{display:flex;flex-direction:column;gap:6px}
+select,textarea,input[type=text],button{padding:8px;border:1px solid #ddd;border-radius:8px;background:#fff}
+button{cursor:pointer} button:hover{background:#fafafa}
+#tips{padding:6px 20px}
+.pill{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;background:#eef6ff;border:1px solid #cfe4ff;border-radius:999px;font-size:12px}
+#skills{padding:0 20px 6px 20px}
+.skill{display:inline-block;margin:4px 6px 0 0;padding:6px 10px;background:#f4f1ff;border:1px solid #e0daff;border-radius:999px;font-size:12px}
+#ownedBox{padding:0 20px 8px 20px}
+#list{padding:8px 20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:#fff;border:1px solid #eee;border-radius:14px;padding:12px;box-shadow:0 1px 0 rgba(0,0,0,0.02);display:flex;flex-direction:column;gap:8px}
+.card h3{margin:0 0 4px 0;font-size:16px;display:flex;justify-content:space-between;align-items:center}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+.badge{font-size:11px;border:1px solid #eee;padding:4px 8px;border-radius:999px;background:#fafafa}
+.badge.owned{background:#eaffea;border-color:#cdeccc}
+.score{font-weight:700}
+.small{color:#666;font-size:12px}
+.empty{padding:24px 20px;color:#666}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.muted{color:#777;font-size:12px}
+.copy-btn{font-size:12px;padding:6px 8px;border-radius:8px}
+.toast{left:50%;bottom:20px;transform:translateX(-50%);background:#222;color:#fff;padding:8px 12px;border-radius:10px;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+details.tagbox{padding:0 20px} details.tagbox summary{cursor:pointer;user-select:none;padding:6px 0;color:#333}
+.tags-panel{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px;padding:8px;border:1px solid #eee;border-radius:10px;background:#fff}
+.tag-chip{display:flex;gap:6px;align-items:center;font-size:12px;padding:6px 8px;border:1px solid #eee;border-radius:999px;background:#fafafa}
+.tag-chip input{margin:0}
+.tag-bar{padding:0 20px 8px 20px} .tag-pill{display:inline-block;margin:4px 6px 0 0;padding:4px 10px;background:#f4fbf4;border:1px solid #d9f0d9;border-radius:999px;font-size:12px}
+.panel{display:none} .panel.active{display:block}
+.table-wrap{padding:10px 20px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #eee;border-radius:12px;overflow:hidden}
+th,td{padding:8px 10px;border-bottom:1px solid #f0f0f0;font-size:13px;vertical-align:middle}
+thead th{top:0;background:#fafafa;z-index:1} /* sticky fix */
+tbody tr:hover{background:#fafcff}
+.nowrap{white-space:nowrap} .num{text-align:right}
+.group table thead th{ top:auto !important}
+.group{margin:14px 20px;border:1px solid #eee;border-radius:12px;background:#fff}
+.group summary{padding:10px 12px;cursor:pointer;font-weight:600;border-bottom:1px solid #f5f5f5}
+.group .inner{padding:10px 12px}
+.countpill{display:inline-block;margin-left:8px;font-size:11px;background:#f0f7ff;border:1px solid #cfe4ff;border-radius:999px;padding:2px 8px}
+/* thumbnails */
+.thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid #eee;background:#fafafa}
+.thumb.sm{width:32px;height:32px;border-radius:6px}
+.card .row.thumbrow{gap:10px;align-items:center}
+.imgcol{width:44px;text-align:center}
+/* Hide top totals (의상/스테이지/스킬) only */
+.countbox{display:none !important}
+#controls .muted{display:none !important}
+#partCounts{display:flex;flex-wrap:wrap;gap:6px;padding:6px 20px}
+#stageFilterBlock label{margin-right:6px}
+/* align filters in one row */
+#controls .filter-row{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#controls .filter-row label{margin-right:4px}
+/* ensure labels and selects inline */
+#controls .filter-row label{margin-right:6px;white-space:nowrap}
+#controls .filter-row select{margin-right:16px}
+/* Filter styling adjustments */
+#controls .filter-row label,
+#controls .filter-row select,
+#controls .filter-row input[type=checkbox] {
+  font-size: 13px;
+}
+#controls .filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#controls .filter-row .checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  white-space: nowrap;
+}
+/* Adjust filter alignment */
+#controls .filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#controls .filter-row select,
+#controls .filter-row label,
+#controls .filter-row input[type=checkbox] {
+  font-size: 13px;
+}
+#controls .filter-row .checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 0;
+  white-space: nowrap;
+}
+/* Tighter filter alignment */
+#controls .filter-row {
+  display: flex;
+  align-items: center;
+  gap: 2px; /* 최소 간격 */
+  flex-wrap: wrap;
+}
+#controls .filter-row select,
+#controls .filter-row label,
+#controls .filter-row input[type=checkbox] {
+  font-size: 12px;
+  margin: 0;
+  padding: 2px 4px;
+}
+#controls .filter-row .checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  white-space: nowrap;
+}
+/* Ultra tight filter alignment */
+#controls .filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0px; /* 완전히 붙이기 */
+  flex-wrap: nowrap; /* 줄바꿈 방지 */
+}
+#controls .filter-row select,
+#controls .filter-row label,
+#controls .filter-row input[type=checkbox] {
+  font-size: 12px;
+  margin: 0;
+  padding: 2px 4px;
+}
+#controls .filter-row .checkbox-inline {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  white-space: nowrap;
+}
+/* Match filter font size to tab font size */
+#controls .filter-row label,
+#controls .filter-row select,
+#controls .filter-row input[type=checkbox] {
+  font-size: 14px; /* 탭과 동일 크기 */
+}
+#controls .filter-row .checkbox-inline {
+  font-size: 14px;
+}
+/* Match '보유 의상 이름' label and inputs to tab font size */
+#ownedBox label,
+#ownedBox textarea,
+#ownedBox button {
+  font-size: 14px;
+}
+/* Match action buttons to tab font size */
+#ownedBox button {
+  font-size: 14px !important;
+}
+#partCounts{ display:none !important; }
+#partSummary{ display:none !important; }
+.pill-small{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border:1px solid #e6e6e6;border-radius:999px;font-size:12px;background:#fff;cursor:pointer}
+.pill-small .k{opacity:.75}
+.pill-small .v{font-weight:600}
+.partbar .pill-small:hover{background:#f2f2ff;border-color:#dcd8ff}
+.small{font-size:12px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#eef1ff;border:1px solid #dfe5ff}
+.partbar-wrap .muted.small{font-size:12px;color:#666}
+.gtab{border:1px solid #e6e6e6;background:#fff;border-radius:999px;padding:2px 10px;font-size:12px;cursor:pointer}
+.gtab.is-on{background:#f2f2ff;border-color:#dcd8ff}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border:1px solid #e6e6e6;border-radius:999px;font-size:12px;background:#fff;cursor:pointer}
+.chip .k{opacity:.75}
+.chip .v{font-weight:600}
+.chip:hover{background:#f7f7ff;border-color:#dcd8ff}
+#partFilter option.groupHdr{font-weight:700}
+
+#itemsTable th, 
+#itemsTable td,
+#byPartWrap th,
+#byPartWrap td {
+  text-align: center;
+}
+
+</style>
+
+<style>
+
+</style>
+
+</head>
+<body>
+
+<!-- INLINE_DATA_START -->
+<script>
+// Inline failsafe dataset (ensures rendering even if iframes/postMessage/fetch fail)
+try {
+  window.items = [{part:"하의", name:"수식", stars:3,
+  lively:"A", lively_bonus:29, chic:"B", chic_bonus:10, simple:"C", simple_bonus:54, pure:"C", pure_bonus:53, warm:"C", warm_bonus:42,
+  tags:"운동룩, 자외선차단", img:"https://drive.google.com/thumbnail?id=1raC6m33CQjYANyTD6K8dX0A6a65SXq3m"},
+  {part:"하의", name:"연푸른 청춘", stars:3,
+  lively:"A", lively_bonus:40, pure:"B", pure_bonus:4, warm:"C", warm_bonus:57, simple:"C", simple_bonus:54, cute:"C", cute_bonus:42,
+  tags:"젠더리스", img:"https://drive.google.com/thumbnail?id=1THGYO95EydQCxpAnuxEZOEEf6_Wd_TZ3"},
+  {part:"하의", name:"슈가프리 초콜릿", stars:3,
+  elegant:"A", elegant_bonus:35, pure:"B", pure_bonus:5, simple:"C", simple_bonus:57, chic:"C", chic_bonus:53, cool:"C", cool_bonus:42,
+  tags:"오피스룩, 성숙한스타일", img:"https://drive.google.com/thumbnail?id=1UoujiTHv_7RgUJ95HSUSvx9CdoyU9DiI"},
+  {part:"하의", name:"도약 요소", stars:3, 
+  cute:"A", cute_bonus:32, lively:"B", lively_bonus:4, warm:"C", warm_bonus:57, pure:"C", pure_bonus:54, simple:"C", simple_bonus:42, 
+  tags:"운동룩, 워크웨어", img:"https://drive.google.com/thumbnail?id=1XYyc1yyGoyFiblEtjWnZFxU2s1Pjdndh"},
+  {part:"아우터", name:"환상의 악장", stars:4, simple:"B", simple_bonus:28, lively:"S", lively_bonus:47, chic:"A", chic_bonus:15, sexy:"B", sexy_bonus:34, cool:"C", cool_bonus:68, tags:"걸그룹스타일, 사이버퓨처", img:"https://drive.google.com/thumbnail?id=1Fw17YP5QsYz2sbL-I2QDBgMpf3LN0I1E"},
+  {part:"원피스", name:"은빛 나비 날개", stars:3, flair:"A", flair_bonus:37, lively:"B", lively_bonus:5, cute:"C", cute_bonus:56, sexy:"C", sexy_bonus:57, cool:"C", cool_bonus:41, tags:"걸그룹스타일, 드레스", img:"https://drive.google.com/thumbnail?id=1N2KwaG_fYY9yVuLZmyAqqZ4FL4JGJscK"},
+  {part:"원피스", name:"마음의 주말", stars:3, simple:"C", simple_bonus:55, elegant:"", elegant_bonus:"", lively:"C", lively_bonus:56, chic:"", chic_bonus:"", cute:"A", cute_bonus:29, sexy:"", sexy_bonus:"", pure:"C", pure_bonus:67, cool:"C", cool_bonus:40, warm:"", warm_bonus:"", tags:"스쿨룩", img:"https://drive.google.com/thumbnail?id=13BskZ93Pkxef9qvJSycoAIrqu3PgfkYg"},
+  {part:"헤어 스타일", name:"석양의 날개", stars:3, flair:"A", flair_bonus:35, elegant:"C", elegant_bonus:56, cute:"C", cute_bonus:53, sexy:"B", sexy_bonus:5, warm:"C", warm_bonus:42, tags:"드레스", img:"https://drive.google.com/thumbnail?id=1sCEN_7P5n6Q6D1uavJg7CX6tT9a_QefP"},
+  {part:"상의", name:"사랑 독차지", stars:4, flair:"B", flair_bonus:32, lively:"A", lively_bonus:7, chic:"B", chic_bonus:25, sexy:"S", sexy_bonus:44, cool:"C", cool_bonus:65, tags:"걸그룹스타일 , 트렌디스냅샷", img:"https://drive.google.com/thumbnail?id=1Xe9jFX82UjaZIrCwBgxuNukf1OKlNcbW"},
+  {part:"원피스", name:"소녀와 고양이", stars:3, simple:"C", simple_bonus:56, lively:"C", lively_bonus:70, cute:"A", cute_bonus:29, pure:"C", pure_bonus:53, cool:"C", cool_bonus:40, tags:"걸그룹스타일 , 스쿨룩", img:"https://drive.google.com/thumbnail?id=1uVgAy0iUKQA5GqVeZa1EdokPnxfqeIPp"},
+  {part:"원피스", name:"씨솔트 크림", stars:3, simple:"C", simple_bonus:44, lively:"C", lively_bonus:55, cute:"B", cute_bonus:4, pure:"A", pure_bonus:29, cool:"C", cool_bonus:53, tags:"바캉스스타일", img:"https://drive.google.com/thumbnail?id=1wqEfbSp56TNIruT4TTiJW0hr6OYT4KQa"},
+  {part:"상의", name:"시어 썸머", stars:4, simple:"B", simple_bonus:10, lively:"B", lively_bonus:10, cute:"S", cute_bonus:36, sexy:"B", sexy_bonus:65, cool:"C", cool_bonus:63, tags:"트렌디스냅샷", img:"https://drive.google.com/thumbnail?id=1nDIM3GGa5-xxkzlt6D8EdsxU6VynzX_Q"},
+  {part:"상의", name:"순백의 운율", stars:3, simple:"B", simple_bonus:5, elegant:"C", elegant_bonus:55, chic:"A", chic_bonus:35, sexy:"C", sexy_bonus:56, cool:"C", cool_bonus:42, tags:"오피스룩 , 젠더리스", img:"https://drive.google.com/thumbnail?id=1YJ8H6lqrFd2y1dyjmDaw8FlidmfbdRBj"},
+  {part:"상의", name:"스윗 허니", stars:3, simple:"C", simple_bonus:70, lively:"C", lively_bonus:55, cute:"C", cute_bonus:43, pure:"A", pure_bonus:40, cool:"C", cool_bonus:56, tags:"애니멀", img:"https://drive.google.com/thumbnail?id=1ixq_tDWT-EvqfWOD39T4WJG-PqPhPNeZ"},
+  {part:"상의", name:"민트 파르페", stars:3, simple:"C", simple_bonus:58, elegant:"C", elegant_bonus:53, lively:"", lively_bonus:"", chic:"", chic_bonus:"", cute:"B", cute_bonus:7, sexy:"A", sexy_bonus:40, pure:"", pure_bonus:"", cool:"C", cool_bonus:40, warm:"", warm_bonus:"", tags:"걸그룹스타일 , 트렌디스냅샷", img:"https://drive.google.com/thumbnail?id=1AwdwZgaUPhdYNcAaTpX6ik0QjnkfAJK8"},
+  {part:"상의", name:"뛰는 맥박", stars:3, simple:"C", simple_bonus:70, elegant:"", elegant_bonus:"", lively:"A", lively_bonus:40, chic:"C", chic_bonus:54, cute:"", cute_bonus:"", sexy:"", sexy_bonus:"", pure:"C", pure_bonus:57, cool:"C", cool_bonus:43, warm:"", warm_bonus:"", tags:"운동룩", img:"https://drive.google.com/thumbnail?id=1btS-iG9BUd_BWiTrIprqlhiAMVO3UPQq"},
+  {part:"상의", name:"산들 여름", stars:3, simple:"A", simple_bonus:40, elegant:"", elegant_bonus:"", lively:"C", lively_bonus:43, chic:"", chic_bonus:"", cute:"C", ute_bonus:66, sexy:"C", sexy_bonus:55, pure:"", pure_bonus:"", cool:"C", cool_bonus:54, warm:"", warm_bonus:"", tags:"홈웨어", img:"https://drive.google.com/thumbnail?id=1BzOWobB0VLpE5ryAvlUiYLAurpIj_bkp"},
+  {part:"하의", name:"체인드 썸머", stars:4, simple:"B", simple_bonus:23, elegant:"", elegant_bonus:"", lively:"B", lively_bonus:8, chic:"", chic_bonus:"", cute:"S", cute_bonus:35, sexy:"B", sexy_bonus:60, pure:"", pure_bonus:"", cool:"C", cool_bonus:61, warm:"", warm_bonus:"", tags:"트렌디 스냅샷", img:"https://drive.google.com/thumbnail?id=1BUHHq7cGH1L2YkR7OVir-q5vXoOKKSOY"},
+  {part:"하의", name:"판타지 왈츠", stars:4, flair:"B", flair_bonus:25, simple:"", simple_bonus:"", elegant:"", elegant_bonus:"", lively:"A", lively_bonus:10, chic:"B", chic_bonus:23, cute:"", cute_bonus:"", sexy:"S", sexy_bonus:42, pure:"", pure_bonus:"", cool:"C", cool_bonus:63, warm:"", warm_bonus:"", tags:"걸그룹스타일 , 트렌디스냅샵", img:"https://drive.google.com/thumbnail?id=1bH7xsoF4AIfEy8tRxim3aPffeqqGu4z3"},
+  {part:"하의", name:"어둠의 기사", stars:3, flair:"", flair_bonus:"", simple:"A", simple_bonus:35, elegant:"", elegant_bonus:"", lively:"C", lively_bonus:54, chic:"C", chic_bonus:67, cute:"", cute_bonus:"", sexy:"C", sexy_bonus:40, pure:"", pure_bonus:"", cool:"", cool_bonus:"", warm:"C", warm_bonus:55, tags:"", img:"https://drive.google.com/thumbnail?id=1lTewIHZFBdsbZqNGskxg5zoqHS_50lci"},
+  {part:"하의", name:"늦여름의 그늘", stars:3, flair:"", flair_bonus:"", simple:"C", simple_bonus:58, elegant:"C", elegant_bonus:58, lively:"", lively_bonus:"", chic:"", chic_bonus:"", cute:"B", cute_bonus:7, sexy:"", sexy_bonus:"", pure:"A", pure_bonus:32, cool:"C", cool_bonus:40, warm:"", warm_bonus:"", tags:"걸그룹스타일 , 바캉스스타일", img:"https://drive.google.com/thumbnail?id=1xQxk_pN9-oHxnjiTpXjKMiAcNJD4eOtt"},
+  {part:"하의", name:"부서진 밤하늘", stars:3, flair:"", flair_bonus:"", simple:"A", simple_bonus:29, elegant:"", elegant_bonus:"", lively:"B", lively_bonus:4, chic:"C", chic_bonus:57, cute:"", cute_bonus:"", sexy:"", sexy_bonus:"", pure:"C", pure_bonus:54, cool:"", cool_bonus:"", warm:"C", warm_bonus:41, tags:"운동룩", img:"https://drive.google.com/thumbnail?id=1qK9NkvHPlQGqt_M2U59_7YgIonq025H9"},
+  {part:"하의", name:"살랑 여름", stars:3, simple:"A", simple_bonus:41, cute:"B", cute_bonus:9, sexy:"C", sexy_bonus:58, lively:"C", lively_bonus:42, cool:"C", cool_bonus:58, tags:"홈웨어", img:"https://drive.google.com/thumbnail?id=1MQ9ATx_F5DC0Vqbs0p2m7GVZZIIEWnJO"},
+  {part:"양말", name:"자색고구마 기억", stars:5, cute:"SS", cute_bonus:38, pure:"S", pure_bonus:15, lively:"A", lively_bonus:40, simple:"A", simple_bonus:23, warm:"B", warm_bonus:34, tags:"스쿨룩 , 유니폼룩", img:"https://drive.google.com/thumbnail?id=1Yq_g1oRRswgMroAXD2juLfLwrSyEvSRu"},
+  {part:"모자", name:"봄꽃 들판", stars:4, simple:"", simple_bonus:"", elegant:"B", elegant_bonus:25, lively:"", lively_bonus:"", chic:"", chic_bonus:"", cute:"S", cute_bonus:35, sexy:"", sexy_bonus:"", pure:"B", pure_bonus:60, cool:"C", cool_bonus:65, warm:"", warm_bonus:"", tags:"내추럴 , 모리걸", img:"https://drive.google.com/thumbnail?id=12v6U8oW34ZsRgfJNbM8EeaYXu81pQjZF"},
+  {part:"소지품", name:"글로리 타임", stars:4, simple:"", simple_bonus:"", elegant:"", elegant_bonus:"", lively:"A", lively_bonus:1, chic:"B", chic_bonus:2.6, cute:"", cute_bonus:"", sexy:"S", sexy_bonus:3.2, pure:"", pure_bonus:"", cool:"C", cool_bonus:4.5, warm:"", warm_bonus:"", tags:"걸그룹스타일 , 트렌디스냅샷", img:"https://drive.google.com/thumbnail?id=1bkx0GTRqk8C3vEMGquma72c2X19pmQbT"},
+  {part:"원피스", name:"얽힌 시공간", stars:3, simple:"C", simple_bonus:55, elegant:"C", elegant_bonus:54, chic:"A", chic_bonus:29, sexy:"C", sexy_bonus:68, cool:"C", cool_bonus:43, tags:"걸그룹스타일 , 트렌디스냅샷", img:"https://drive.google.com/thumbnail?id=1JQcXDKlSoaPfisYaYkiw83Gw6i0SJXxK"},
+  {part:"상의", name:"봄바람의 속삭임", stars:4, flair:"B", flair_bonus:8, elegant:"B", elegant_bonus:8, cute:"S", cute_bonus:32, sexy:"B", sexy_bonus:67, cool:"C", cool_bonus:60, tags:"내추럴 , 모리걸", img:"https://drive.google.com/thumbnail?id=16h2tV0wFSxU7F4uNePec9l7R2pE2xN-t"},
+  {part:"하의", name:"바닐라 와플", stars:5, simple:"A", simple_bonus:30, elegant:"", elegant_bonus:"", lively:"A", lively_bonus:20, chic:"", chic_bonus:"", cute:"SS", cute_bonus:49, sexy:"", sexy_bonus:"", pure:"S", pure_bonus:6, cool:"B", cool_bonus:56, warm:"", warm_bonus:"", tags:"스쿨룩 , 유니폼룩", img:"https://drive.google.com/thumbnail?id=1sJpb9x6B3BNLaorcl1j3hDofmmNO-RCi"},
+  {part:"하의", name:"봄빛에 실은 꿈", stars:4, flair:"B", flair_bonus:10, simple:"", simple_bonus:"", elegant:"B", elegant_bonus:27, lively:"", lively_bonus:"", chic:"", chic_bonus:"", cute:"S", cute_bonus:37, sexy:"", sexy_bonus:"", pure:"B", pure_bonus:62, cool:"C", cool_bonus:64, warm:"", warm_bonus:"", tags:"내추럴 , 모리걸", img:"https://drive.google.com/thumbnail?id=14ZWwrP8dC-GuxO9H5Z07FnpJfpp8hRYb"},
+  {
+  part:"양말", name:"별바다의 흐름", stars:5,
+  flair:"SS", flair_bonus:51,
+  elegant:"S", elegant_bonus:15,
+  sexy:"A", sexy_bonus:30,
+  cute:"A", cute_bonus:30,
+  cool:"B", cool_bonus:47,
+  tags:"유럽풍 , 드레스", img:"https://drive.google.com/thumbnail?id=1ihYgfKjFbUQ7dt6hs32WnH1TUPGSpUnD"
+},
+  {
+  part:"양말", name:"포근한 아침꿈", stars:4,
+  lively:"S", lively_bonus:51,
+  chic:"A", chic_bonus:26,
+  warm:"B", warm_bonus:42,
+  sexy:"B", sexy_bonus:32,
+  simple:"C", simple_bonus:81,
+  tags:"운동룩", img:"https://drive.google.com/thumbnail?id=1gEphAgX9b0rK0yJW4V1rMHRgW6AKm7o2"
+},
+  {
+  part:"양말", name:"초능력 소녀", stars:3,
+  chic:"A", chic_bonus:39,
+  lively:"B", lively_bonus:38,
+  simple:"C", simple_bonus:67,
+  warm:"C", warm_bonus:66,
+  pure:"C", pure_bonus:51,
+  tags:"스트릿펑크 , 운동룩", img:"https://drive.google.com/thumbnail?id=1FtmEp910mmNDTrOBznelthrA19Hjt5Pz"
+},
+  {
+  part:"양말", name:"소녀의 편지", stars:3,
+  pure:"A", pure_bonus:45,
+  cute:"B", cute_bonus:40,
+  simple:"C", simple_bonus:67,
+  lively:"C", lively_bonus:66,
+  warm:"C", warm_bonus:53,
+  tags:"홈웨어", img:"https://drive.google.com/thumbnail?id=10HiFeHxm6u2kUMlR7qHUFYyKP5ab0IY3"
+},
+  {
+  part:"양말", name:"별의 괴도", stars:3,
+  sexy:"A", sexy_bonus:35,
+  cute:"B", cute_bonus:5,
+  elegant:"C", elegant_bonus:67,
+  flair:"C", flair_bonus:66,
+  cool:"C", cool_bonus:49,
+  tags:"유럽풍", img:"https://drive.google.com/thumbnail?id=1gZSJEsezDkHZVEyy7fHfeOo1RTFlR7E0"
+},
+  {
+  part:"양말", name:"이슬꽃", stars:3,
+  flair:"A", flair_bonus:35,
+  elegant:"B", elegant_bonus:5,
+  pure:"C", pure_bonus:68,
+  cute:"C", cute_bonus:67,
+  cool:"C", cool_bonus:52,
+  tags:"드레스", img:"https://drive.google.com/thumbnail?id=1OMsDndFTZfsJIS5tt5dqTzweLKvYcpB9"
+},
+  {
+  part:"양말", name:"블랙캣 소녀", stars:3,
+  cute:"A", cute_bonus:39,
+  lively:"B", lively_bonus:9,
+  simple:"C", simple_bonus:68,
+  pure:"C", pure_bonus:67,
+  cool:"C", cool_bonus:70,
+  tags:"애니멀", img:"https://drive.google.com/thumbnail?id=1Fzi0wspWBa5PyoK6P60GQiQVLoFmGQJM"
+},
+  {
+  part:"양말", name:"꽃그늘", stars:3,
+  elegant:"A", elegant_bonus:39,
+  cute:"B", cute_bonus:38,
+  simple:"C", simple_bonus:70,
+  pure:"C", pure_bonus:66,
+  cool:"C", cool_bonus:53,
+  tags:"스쿨룩", img:"https://drive.google.com/thumbnail?id=1hMJZTWiMrN98QTLQw_rTc0m6cETBR-q0"
+},
+  {
+  part:"신발", name:"블랙커피 아침", stars:5,
+  cute:"SS", cute_bonus:60,
+  pure:"S", pure_bonus:15,
+  simple:"A", simple_bonus:34,
+  lively:"A", lively_bonus:34,
+  cool:"B", cool_bonus:43,
+  tags:"스쿨룩 , 유니폼룩", img:"https://drive.google.com/thumbnail?id=13lBP8kN_RNNhlFRT2RVkI8WPZH6l4jgp"
+},
+  {
+  part:"신발", name:"눈 위의 은하", stars:5,
+  flair:"SS", flair_bonus:39,
+  pure:"S", pure_bonus:12,
+  cute:"A", cute_bonus:30,
+  elegant:"A", elegant_bonus:21,
+  cool:"B", cool_bonus:47,
+  tags:"유럽풍 , 드레스", img:"https://drive.google.com/thumbnail?id=1Eoo_Iy2eFSV7GQ3jjMph3HdmL8VkKZsY"
+},
+  {
+  part:"신발", name:"첫사랑의 노래", stars:4,
+  elegant:"S", elegant_bonus:58,
+  pure:"A", pure_bonus:29,
+  flair:"B", flair_bonus:56,
+  cute:"B", cute_bonus:37,
+  cool:"C", cool_bonus:83,
+  tags:"중국풍", img:"https://drive.google.com/thumbnail?id=1jH0rFAiVFl1acWjMhGN9GZOvIHek1RoL"
+},
+  {
+    part: "신발",
+    name: "봄날의 노래",
+    stars: 4,
+    cute: "S", cute_bonus: 35,
+    pure: "A", pure_bonus: 4,
+    flair: "B", flair_bonus: 17,
+    elegant: "B", elegant_bonus: 17,
+    cool: "C", cool_bonus: 60,
+    tags: "내추럴 , 모리걸",
+    img: "https://drive.google.com/thumbnail?id=191jEuD9-yiIK8VUI2Cwo5J-QrWWEXHus"
+  },
+  {
+    part: "신발",
+    name: "가벼운 스텝",
+    stars: 4,
+    sexy: "S", sexy_bonus: 40,
+    lively: "A", lively_bonus: 12,
+    chic: "B", chic_bonus: 30,
+    flair: "B", flair_bonus: 21,
+    cool: "C", cool_bonus: 65,
+    tags: "걸그룹스타일 , 트렌디스냅샷",
+    img: "https://drive.google.com/thumbnail?id=1nJN7U4S63xRlaLkmLvXtoCqVUmyHyhiP"
+  },
+  {
+    part: "신발",
+    name: "밤빛 그림자",
+    stars: 3,
+    sexy: "A", sexy_bonus: 40,
+    chic: "B", chic_bonus: 19,
+    elegant: "C", elegant_bonus: 56,
+    flair: "C", flair_bonus: 53,
+    cool: "C", cool_bonus: 42,
+    tags: "드레스 , 빈티지스타일",
+    img: "https://drive.google.com/thumbnail?id=1y_P_YiJ5CJSr3Ahbs8vYHxmZwXDvmn_h"
+  },
+  {
+    part: "신발",
+    name: "달의 매력",
+    stars: 3,
+    elegant: "A", elegant_bonus: 31,
+    simple: "C", simple_bonus: 69,
+    sexy: "C", sexy_bonus: 56,
+    cute: "C", cute_bonus: 54,
+    cool: "C", cool_bonus: 40,
+    tags: "오피스룩 , 성숙한스타일",
+    img: "https://drive.google.com/thumbnail?id=1KgXrLqwYLMrJWklLEwe8l8u36unsqz21"
+  },
+  {
+    part: "신발",
+    name: "딸기 소다",
+    stars: 3,
+    elegant: "A", elegant_bonus: 40,
+    pure: "B", pure_bonus: 19,
+    cute: "C", cute_bonus: 56,
+    flair: "C", flair_bonus: 53,
+    cool: "C", cool_bonus: 42,
+    tags: "트렌디스냅샷",
+    img: "https://drive.google.com/thumbnail?id=1kEHhz-BqYATI3TqwZagE_tBnPPvVExo6"
+  },
+  {
+    part: "신발",
+    name: "감정 배지",
+    stars: 3,
+    lively: "A", lively_bonus: 32,
+    simple: "B", simple_bonus: 9,
+    chic: "C", chic_bonus: 58,
+    pure: "C", pure_bonus: 68,
+    warm: "C", warm_bonus: 42,
+    tags: "스트릿펑크",
+    img: "https://drive.google.com/thumbnail?id=1qIWIV8-vPuBfumSoe8lB2DMZADahxPRe"
+  },
+  {
+    part: "신발",
+    name: "밤의 끝자락",
+    stars: 3,
+    chic: "A", chic_bonus: 32,
+    lively: "B", lively_bonus: 21,
+    warm: "C", warm_bonus: 56,
+    simple: "C", simple_bonus: 56,
+    pure: "C", pure_bonus: 42,
+    tags: "스트릿펑크 , 젠더리스",
+    img: "https://drive.google.com/thumbnail?id=1wrZz6M6U2_d2yYEpo6lh3voX-t35TnRv"
+  },
+  {
+    part: "신발",
+    name: "검은 깃의 노래",
+    stars: 3,
+    flair: "A", flair_bonus: 29,
+    elegant: "B", elegant_bonus: 12,
+    chic: "C", chic_bonus: 56,
+    sexy: "C", sexy_bonus: 53,
+    cool: "C", cool_bonus: 41,
+    tags: "유럽풍 , 드레스",
+    img: "https://drive.google.com/thumbnail?id=1MPSRAuoHvDn3iGfrLzFpXZ10Dedm3NJa"
+  },
+  {
+    part: "신발",
+    name: "나비의 향연",
+    stars: 3,
+    pure: "A", pure_bonus: 40,
+    simple: "B", simple_bonus: 9,
+    cute: "C", cute_bonus: 58,
+    cool: "C", cool_bonus: 58,
+    lively: "C", lively_bonus: 42,
+    tags: "바캉스스타일",
+    img: "https://drive.google.com/thumbnail?id=1ijJrqzd71YkCnz90xl4nNGUMmmDLxLWo"
+  },
+  {
+    part: "신발",
+    name: "산속 눈",
+    stars: 3,
+    lively: "A", lively_bonus: 29,
+    simple: "C", simple_bonus: 70,
+    chic: "C", chic_bonus: 57,
+    pure: "C", pure_bonus: 55,
+    cool: "C", cool_bonus: 42,
+    tags: "운동룩 , 꾸안꾸",
+    img: "https://drive.google.com/thumbnail?id=14BESQVuMk_S2d5FZVxeGIg5xra00qIT3"
+  },
+  {
+    part: "신발",
+    name: "잠깐의 휴식",
+    stars: 3,
+    simple: "A", simple_bonus: 34,
+    lively: "C", lively_bonus: 68,
+    cool: "C", cool_bonus: 54,
+    sexy: "C", sexy_bonus: 54,
+    cute: "C", cute_bonus: 42,
+    tags: "홈웨어",
+    img: "https://drive.google.com/thumbnail?id=1TSFkUbv3d74inBSka0HuA363Bu_4Epxm"
+  },
+  {
+    part: "모자",
+    name: "꿈의 여행자",
+    stars: 3,
+    cute: "A", cute_bonus: 34,
+    pure: "B", pure_bonus: 5,
+    elegant: "C", elegant_bonus: 56,
+    flair: "C", flair_bonus: 53,
+    cool: "C", cool_bonus: 41,
+    tags: "러블리스타일 , 동화풍",
+    img: "https://drive.google.com/thumbnail?id=1Mj1DGXrR9Yt1-nCbF9misqwBPyXTyJUv"
+  },
+  {
+    part: "헤어 장식",
+    name: "옥색 청사",
+    stars: 3,
+    simple: "A", simple_bonus: 29,
+    pure: "B", pure_bonus: 31,
+    cute: "C", cute_bonus: 58,
+    elegant: "C", elegant_bonus: 58,
+    cool: "C", cool_bonus: 43,
+    tags: "중국풍",
+    img: "https://drive.google.com/thumbnail?id=1QwoWh2QnYchAzS8cK9K8Z9fzm9xMhP3h"
+  },
+  {
+    part: "얼굴 장식",
+    name: "연심 박사",
+    stars: 3,
+    lively: "A", lively_bonus: 32,
+    pure: "B", pure_bonus: 29,
+    flair: "C", flair_bonus: 57,
+    chic: "C", chic_bonus: 56,
+    cool: "C", cool_bonus: 43,
+    tags: "스트릿펑크 , 빈티지스타일",
+    img: "https://drive.google.com/thumbnail?id=1K5D7nVV0zhhyuW7IlEe6moQ6yyvg2Sn6"
+  },
+  {
+    part: "귀걸이",
+    name: "초록빛 유광",
+    stars: 4,
+    elegant: "S", elegant_bonus: 47,
+    pure: "A", pure_bonus: 34,
+    cute: "B", cute_bonus: 38,
+    flair: "B", flair_bonus: 32,
+    cool: "C", cool_bonus: 67,
+    tags: "중국풍",
+    img: "https://drive.google.com/thumbnail?id=1WKHbk6DpVlf9Sqnhw8TgOAO71rWLmUKD"
+  },
+  {
+    part: "귀걸이",
+    name: "늦은 봄의 배꽃",
+    stars: 4,
+    cute: "S", cute_bonus: 36,
+    pure: "B", pure_bonus: 69,
+    elegant: "B", elegant_bonus: 17,
+    flair: "B", flair_bonus: 8,
+    cool: "C", cool_bonus: 63,
+    tags: "내추럴 , 모리걸",
+    img: "https://drive.google.com/thumbnail?id=1QcPFrbj3hJQgumcH5j9SHoLk8Bf8GRgp"
+  },
+  {
+    part: "목걸이",
+    name: "반짝이는 고백",
+    stars: 4,
+    sexy: "S", sexy_bonus: 40,
+    lively: "A", lively_bonus: 15,
+    flair: "B", flair_bonus: 32,
+    chic: "B", chic_bonus: 23,
+    cool: "C", cool_bonus: 68,
+    tags: "걸그룹스타일 , 트렌디스냅샷",
+    img: "https://drive.google.com/thumbnail?id=1J9nUSSJwTsyXPo4K9jEIOFpE9740oUFd"
+  },
+  {
+    part: "목걸이",
+    name: "밤비",
+    stars: 3,
+    chic: "A", chic_bonus: 37,
+    sexy: "B", sexy_bonus: 4,
+    simple: "C", simple_bonus: 58,
+    lively: "C", lively_bonus: 54,
+    cool: "C", cool_bonus: 43,
+    tags: "록스타일 , 스트릿펑크",
+    img: "https://drive.google.com/thumbnail?id=1R76OUPSWNkhhwLe4OpiBXgU1FACQIo2d"
+  },
+];
+  window.stages = [{stage_id:"테스트-1", flair:1, simple:1, elegant:1, lively:1, chic:1, cute:1, sexy:1, pure:1, cool:1, warm:1, weight:9, tip1:"데모 스테이지"},
+{stage_id:"[메인] 1-2 섬에서의 약속", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:20, sexy:0, pure:10, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 청순 10%", extras:["활발","심플","청량"], extras_pct:5},
+  {stage_id:"[메인] 1-4 이성과 감정", flair:0, simple:0, elegant:0, lively:0, chic:20, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 섹시 10%, 태그 걸그룹스타일 10%", extras:["화려","청량","활발"], extras_pct:5},
+  {stage_id:"[메인] 1-6 의혹 속으로", flair:0, simple:10, elegant:0, lively:20, chic:0, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 활발 20%, 서브 심플 10%, 태그 운동룩 10%", extras:["큐티","청량","청순"], extras_pct:5},
+  {stage_id:"[메인] 1-7 '흑역사'", flair:0, simple:0, elegant:20, lively:0, chic:0, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 우아 20%, 서브 섹시 10%, 태그 드레스 10%", extras:["청량","시크","심플"], extras_pct:5},
+  {stage_id:"[메인] 1-8 알지 못했던 일들", flair:0, simple:0, elegant:0, lively:10, chic:0, cute:20, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 활발 10%, 태그 애니멀 10%", extras:["포근","청순","화려"], extras_pct:5},
+  {stage_id:"[메인] 1-9 어둠 속에서", flair:0, simple:10, elegant:0, lively:0, chic:20, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 심플 10%, 태그 젠더리스 10%"},
+  {stage_id:"[메인] 1-10 창조자", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:10, sexy:0, pure:0, cool:0, warm:20, weight:9, tip1:"메인 포근 20%, 서브 큐티 10%"}
+];
+  window.ITEMS = window.items;
+  // got gate (if present)
+  if (!window.got) window.got = {items:true, stages:true};
+  else { window.got.items = true; window.got.stages = true; }
+} catch (e) { console.error('inline dataset error', e); }
+document.addEventListener('DOMContentLoaded', function(){
+  // call maybeInit/init once DOM is ready
+  try { if (typeof maybeInit==='function') maybeInit(); else if (typeof init==='function') init(); } catch(e) {}
+});
+</script>
+<!-- INLINE_DATA_END -->
+
+<script>
+// Global aliases and safety
+window.items = window.items || [];
+window.stages = window.stages || [];
+window.ITEMS = window.items;
+var items = window.items;
+var stages = window.stages;
+</script>
+
+
+<nav class="tabs">
+<button class="tab active" data-tab="calc">추천/점수</button>
+<button class="tab" data-tab="table">의상 데이터(전체)</button>
+<button class="tab" data-tab="by-part">의상 데이터(부위별)</button>
+</nav>
+<section id="controls">
+<div><label>
+
+<div class="filter-row">
+<label for="stageSelect">스테이지 선택</label>
+<select id="stageSelect"></select>
+<label>부위 필터 (그룹)</label><select id="partFilter"><option value="">전체</option>
+<optgroup label="의상">
+<option value="헤어 스타일">헤어 스타일</option>
+<option value="원피스">원피스</option>
+<option value="아우터">아우터</option>
+<option value="상의">상의</option>
+<option value="하의">하의</option>
+<option value="양말">양말</option>
+<option value="신발">신발</option>
+</optgroup>
+<optgroup label="액세서리">
+<option value="모자">모자</option>
+<option value="헤어 장식">헤어 장식</option>
+<option value="얼굴 장식">얼굴 장식</option>
+<option value="귀걸이">귀걸이</option>
+<option value="목걸이">목걸이</option>
+<option value="소지품">소지품</option>
+<option value="탑승물">탑승물</option>
+</optgroup>
+<optgroup label="팔찌">
+<option value="팔찌 - 손목장식">손목장식</option>
+<option value="팔찌 - 장갑">장갑</option>
+<option value="팔찌 - 반지">반지</option>
+</optgroup>
+<optgroup label="등 장식">
+<option value="등 장식 - 날개">날개</option>
+<option value="등 장식 - 꼬리">꼬리</option>
+<option value="등 장식 - 등 장식">등 장식</option>
+</optgroup>
+<optgroup label="특수 아이템">
+<option value="특수 아이템 - 발찌">발찌</option>
+<option value="특수 아이템 - 크로스백">크로스백</option>
+<option value="특수 아이템 - 블로팅">블로팅</option>
+<option value="특수 아이템 - 타투">타투</option>
+</optgroup>
+<optgroup label="메이크업">
+<option value="아이브로우">아이브로우</option>
+<option value="컬러 렌즈">컬러 렌즈</option>
+<option value="아이라이너">아이라이너</option>
+<option value="아이섀도우">아이섀도우</option>
+<option value="립 메이크업">립 메이크업</option>
+<option value="속눈썹">속눈썹</option>
+<option value="블러셔">블러셔</option>
+<option value="페이스 타투">페이스 타투</option>
+</optgroup></select>
+<label>정렬</label><select id="sortBy"><option value="score">점수순</option><option value="name">이름순</option></select>
+<label><span class="checkbox-inline"><input id="ownedOnly" type="checkbox"/> 보유만 보기</span></label>
+</div>
+</label><div>
+</div></div>
+<div>
+<div></div></div>
+<div></div>
+<div class="muted" style="align-self:center">의상 <span id="itemCount">0</span> · 스테이지 <span id="stageCount">0</span> · 스킬 <span id="skillCount">0</span></div>
+</section>
+<details class="tagbox">
+<summary>태그 필터 (펼치기)</summary>
+<div class="row" style="padding:6px 0">
+<label><input checked="" name="tagMode" type="radio" value="AND"/> 모두 포함(AND)</label>
+<label><input name="tagMode" type="radio" value="OR"/> 하나 이상(OR)</label>
+<button id="clearTags">선택 해제</button>
+</div>
+<div class="tags-panel" id="tagsPanel"></div>
+</details>
+<div class="tag-bar" id="activeTags"></div>
+<section class="panel active" id="panel-calc">
+<section id="ownedBox">
+ <span id="ownedSummary" class="badge" style="margin-left:8px">보유 0 / 전체 0</span> 
+
+
+  
+</div>
+<div class="row">
+
+
+  <div id="partChips" class="chiprow" style="display:flex;gap:6px;overflow:auto;white-space:nowrap;margin-top:6px"></div>
+</div>
+
+<div id="partTabsWrap" style="margin:4px 0">
+  <div id="partTabs" style="display:flex;gap:6px;align-items:center">
+    <button class="gtab is-on" data-g="wear">의상</button>
+    <button class="gtab" data-g="acc">액세사리</button>
+    <button class="gtab" data-g="makeup">메이크업</button>
+  </div>
+  <div id="partChips" class="chiprow" style="display:flex;gap:6px;overflow:auto;white-space:nowrap;margin-top:6px"></div>
+</div>
+
+
+<div><label for="ownedInput" style="display:block;margin:4px 0;font-weight:500">보유 의상 이름 (줄바꿈/쉼표/공백 구분)</label></div>
+<textarea id="ownedInput" placeholder="예) 석양의 날개" style="min-width:420px;min-height:84px"></textarea>
+<div class="owned-buttons" style="margin-top:6px; display:flex; gap:8px; flex-wrap:wrap">
+  <button id="exportOwned" type="button">내보내기(.txt)</button>
+  <button id="importOwned" type="button">불러오기(.txt)</button>
+  <input type="file" id="importOwnedFile" accept=".txt" style="display:none" />
+</div>
+<div class="row" style="align-items:flex-start"></div>
+</div>
+<div clas
+
+  <div id="partChips" class="chiprow" style="display:flex;gap:6px;overflow:auto;white-space:nowrap;margin-top:6px"></div>
+</div>
+</div>
+
+<section id="partSummary" style="margin:10px 0 4px 0">
+  <div class="row" style="align-items:center;gap:8px">
+    <h3 style="margin:0;font-size:14px">부위별 개수</h3>
+    <span class="muted" style="font-size:12px">보유 / 전체(등록)</span>
+  </div>
+  <div class="table-wrap" style="margin-top:6px">
+    <table class="table small" id="partSummaryTable" style="min-width:520px">
+      <thead>
+        <tr>
+          <th style="width:40%">부위</th>
+          <th style="width:20%">보유</th>
+          <th style="width:20%">전체</th>
+          <th style="width:20%">보유율</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <div class="muted" style="font-size:12px">행을 클릭하면 해당 부위로 필터가 적용됩니다.</div>
+</section>
+</section>
+<section id="tips"></section><section id="skills"></section>
+<div class="empty" id="emptyState">아직 내장된 데이터가 없습니다. 의상/스테이지/스킬을 보내주시면 이 파일에 반영해 드릴게요.</div>
+<section id="list" style="display:none"></section>
+<div class="toast" id="toast">복사됨</div>
+</section>
+<section class="panel" id="panel-table">
+<div class="table-wrap">
+<div class="row" style="justify-content:space-between;padding:6px 0">
+<div class="muted">현재 선택된 스테이지 가중치로 <b>계산 점수</b>가 표시됩니다.</div>
+<div class="row"><input id="tableSearch" placeholder="이름/부위/태그 검색" style="min-width:220px" type="text"/><button id="tableClear">지우기</button></div>
+</div>
+<div style="overflow:auto;max-height:70vh">
+<table id="itemsTable">
+<thead><tr>
+<th class="nowrap imgcol">이미지</th><th class="nowrap">부위</th><th class="nowrap">이름</th><th class="num nowrap">별</th>
+<th>화려</th><th>심플</th><th>우아</th><th>활발</th><th>시크</th>
+<th>큐티</th><th>섹시</th><th>청순</th><th>청량</th><th>포근</th>
+<th>태그</th><th class="num nowrap">계산 점수</th>
+</tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</div>
+</section>
+<section class="panel" id="panel-by-part">
+<div class="table-wrap" id="byPartWrap"></div>
+</section>
+<script>
+const PART_SYNONYM = {"엑세사리 - 얼굴 장식":"얼굴 장식","엑세사리 - 귀걸이":"귀걸이","엑세사리 - 목걸이":"목걸이","엑세사리 - 팔찌 - 손목장식":"팔찌 - 손목장식","엑세사리 - 팔찌 - 장갑":"팔찌 - 장갑","엑세사리 - 특수 아이템 - 발찌":"특수 아이템 - 발찌","엑세사리 - 특수 아이템 - 크로스백":"특수 아이템 - 크로스백"};
+const normalizePart = (p)=> PART_SYNONYM[String(p||'').trim()] || String(p||'').trim();
+
+const TAG_CATALOG_FULL = [
+  "걸그룹스타일",
+  "겨울옷",
+  "고딕러블리",
+  "고딕풍",
+  "꾸안꾸",
+  "내추럴",
+  "댄서",
+  "도망친공주",
+  "동심풍스타일",
+  "동화풍",
+  "드레스",
+  "러블리스타일",
+  "록스타일",
+  "모리걸",
+  "목욕",
+  "바캉스스타일",
+  "빈티지스타일",
+  "사이버퓨처",
+  "성숙한스타일",
+  "수영복",
+  "스윗러블리",
+  "스쿨룩",
+  "스트릿펑크",
+  "애니멀",
+  "에스닉",
+  "엘프",
+  "영국풍",
+  "오피스룩",
+  "우산",
+  "운동룩",
+  "워크웨어",
+  "웨딩드레스",
+  "유니폼룩",
+  "유럽시골풍",
+  "유럽풍",
+  "유럽풍판타지",
+  "이브닝드레스",
+  "이집트스타일",
+  "일본풍",
+  "자외선차단",
+  "젠더리스",
+  "중국무형유산풍",
+  "중국풍",
+  "차이나시크",
+  "클래식러블리",
+  "트렌디스냅샷",
+  "하이엔드",
+  "핫걸",
+  "홈웨어"
+];
+
+// 내장 아이템 2개 (이미지 포함), "성숙" 대신 "시크"
+/* items moved to iframe v2 */
+
+// 스테이지 가중치도 "시크" 필드 포함
+const stages = [{stage_id:"테스트-1", flair:1, simple:1, elegant:1, lively:1, chic:1, cute:1, sexy:1, pure:1, cool:1, warm:1, weight:9, tip1:"데모 스테이지"},
+{stage_id:"[메인] 1-2 섬에서의 약속", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:20, sexy:0, pure:10, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 청순 10%"},
+  {stage_id:"[메인] 1-4 이성과 감정", flair:0, simple:0, elegant:0, lively:0, chic:20, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 섹시 10%, 태그 걸그룹스타일 10%"},
+  {stage_id:"[메인] 1-6 의혹 속으로", flair:0, simple:10, elegant:0, lively:20, chic:0, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 활발 20%, 서브 심플 10%, 태그 운동룩 10%"},
+  {stage_id:"[메인] 1-7 '흑역사'", flair:0, simple:0, elegant:20, lively:0, chic:0, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 우아 20%, 서브 섹시 10%, 태그 드레스 10%"},
+  {stage_id:"[메인] 1-8 알지 못했던 일들", flair:0, simple:0, elegant:0, lively:10, chic:0, cute:20, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 활발 10%, 태그 애니멀 10%"},
+  {stage_id:"[메인] 1-9 어둠 속에서", flair:0, simple:10, elegant:0, lively:0, chic:20, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 심플 10%, 태그 젠더리스 10%"},
+  {stage_id:"[메인] 1-10 창조자", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:10, sexy:0, pure:0, cool:0, warm:20, weight:9, tip1:"메인 포근 20%, 서브 큐티 10%"}
+];
+
+const gradeScore = {"SSS": 3200.0, "SS": 2612.7, "S": 2089.35, "A": 1690.65, "B": 1309.8, "C": 817.5, "-": 0, "": 0, "null": 0};
+const PART_WEIGHTS = {"헤어 스타일": 0.5, "원피스": 2, "아우터": 0.2, "상의": 1, "하의": 1, "양말": 0.3, "신발": 0.4, "장식": 0.2, "뷰티": 0.1};
+const STAR_MULT = [1.00, 1.00, 1.03, 1.06, 1.09, 1.12, 1.15];
+const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
+
+const OWNED_KEY = 'nikki_owned_names';
+window.ownedNameSet = window.ownedNameSet || new Set();
+let ownedNameSet = window.ownedNameSet;
+const normName = (s)=> String(s||'').normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
+  window.normOwnedName = (s)=> String(s||'').normalize('NFKC').toLowerCase().replace(/\s+/gu,'');
+const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
+const by = (k) => (a,b)=> (a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0);
+const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
+const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
+
+function tagsInclude(itemTags, selected, mode){ if(selected.length===0) return true; const set=new Set(itemTags); return mode==='OR'? selected.some(t=>set.has(t)) : selected.every(t=>set.has(t)); }
+
+function scoreItemForStage(item, stage){
+  const attrs=['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm']; // 시크 포함
+  if(!stage) return 0;
+  const factor=(toNum(stage.weight||9))/9; const stageW={...stage}; attrs.forEach(a=> stageW[a]=toNum(stageW[a]||0)*factor);
+  let base=0; for(const a of attrs) base += toNum(stageW[a]) * gradeToScore(item[a]);
+  return base * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
+}
+
+function buildTagPanel(){
+  const panel=document.getElementById('tagsPanel');
+  panel.innerHTML = TAG_CATALOG_FULL.map(t=>`<label class="tag-chip"><input type="checkbox" value="${t}" data-tagcb><span>${t}</span></label>`).join('');
+  document.getElementById('clearTags').addEventListener('click', ()=>{ panel.querySelectorAll('input[data-tagcb]').forEach(cb=> cb.checked=false); renderAll(); });
+  panel.addEventListener('change', renderAll);
+  document.querySelectorAll('input[name="tagMode"]').forEach(r=> r.addEventListener('change', renderAll));
+}
+const getSelectedTags = ()=> Array.from(document.querySelectorAll('#tagsPanel input[data-tagcb]:checked')).map(cb=> cb.value);
+function showActiveTags(){
+  const wrap=document.getElementById('activeTags'); const selected=getSelectedTags();
+  const mode=document.querySelector('input[name="tagMode"]:checked')?.value || 'AND';
+  wrap.innerHTML = selected.map(t=> `<span class="tag-pill">${t}</span>`).join('') + (selected.length? ` <span clas(${mode})</span>` : '');
+}
+
+function showToast(msg='복사됨'){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1000); }
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); showToast('복사됨: '+text); }
+  catch(e){ const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); showToast('복사됨: '+text); }catch{ alert('복사 실패'); } finally{ ta.remove(); } }
+}
+
+function activateTab(name){ document.querySelectorAll('.tab').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelector('#panel-calc').classList.toggle('active', name==='calc');
+  document.querySelector('#panel-table').classList.toggle('active', name==='table');
+  document.querySelector('#panel-by-part').classList.toggle('active', name==='by-part'); }
+
+function labelGrade(it){ const g=k=> it[k]||'-'; return [`화려 ${g('flair')}`,`심플 ${g('simple')}`,`우아 ${g('elegant')}`,`활발 ${g('lively')}`,`시크 ${g('chic')}`,`큐티 ${g('cute')}`,`섹시 ${g('sexy')}`,`청순 ${g('pure')}`,`청량 ${g('cool')}`,`포근 ${g('warm')}`].join(' / '); }
+
+function getFilteredList(stage){
+  const part=document.getElementById('partFilter').value;
+  const selectedTags=getSelectedTags(); const mode=document.querySelector('input[name="tagMode"]:checked')?.value || 'AND';
+  let list=items.map(it=> ({...it, part:it.part, score:scoreItemForStage(it, stage)}));
+  if(part) list=list.filter(it=> it.part===part);
+  list=list.filter(it=> tagsInclude(parseTags(it.tags), selectedTags, mode));
+  return list.map(it=> ({...it, _owned: window.ownedNameSet.has(window.normOwnedName(it.name))}));
+}
+
+function render(){
+  const stageId=document.getElementById('stageSelect').value || (stages[0] && stages[0].stage_id);
+  const sortBy=document.getElementById('sortBy').value;
+  const ownedOnly=document.getElementById('ownedOnly').checked;
+  const stage=stages.find(s=> s.stage_id===stageId) || stages[0];
+  showActiveTags();
+  let list=getFilteredList(stage);
+  if(ownedOnly) list=list.filter(it=> it._owned);
+  if(sortBy==='score') list.sort((a,b)=> b.score-a.score); else list.sort(by('name'));
+
+  const listEl=document.getElementById('list'); const empty=document.getElementById('emptyState');
+  if(list.length===0){ listEl.style.display='none'; empty.style.display='block'; }
+  else { listEl.style.display='grid'; empty.style.display='none'; }
+
+  listEl.innerHTML = list.map(it=>{
+    const stars=Math.max(0, Math.min(6, Number(it.stars||0)));
+    const tgs=parseTags(it.tags);
+    const img = it.img ? `<img class="thumb" src="${it.img}" alt="${it.name}">` : '';
+    return `<div class="card">
+      <div class="row thumbrow">${img}<h3 style="margin:0;flex:1;display:flex;justify-content:space-between;align-items:center">
+        <span>${it.name||'-'}</span>
+        <button class="copy-btn" onclick="copyText('${(it.name||'').replace(/'/g, "\'")}')">이름 복사</button>
+      </h3></div>
+      <div class="badges"><span class="badge">${it.part||'-'}</span><span class="badge">${stars}★</span>${it._owned?'<span class="badge owned">보유</span>':''}</div>
+      <div>${tgs.map(x=>`<span class='pill'>${x}</span>`).join('')} </div>
+      <div class="score">점수: ${Number(it.score).toFixed(2)}</div>
+      <div class="small">${labelGrade(it)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(){
+  const stageId=document.getElementById('stageSelect').value || (stages[0] && stages[0].stage_id);
+  const stage=stages.find(s=>s.stage_id===stageId) || stages[0];
+  const q=(document.getElementById('tableSearch').value||'').trim().toLowerCase();
+  let list=getFilteredList(stage);
+  if(q) list=list.filter(it=> (`${it.name} ${it.part} ${it.tags}`).toLowerCase().includes(q));
+  const tbody=document.querySelector('#itemsTable tbody');
+  tbody.innerHTML = list.map(it=>{
+    const tgs=parseTags(it.tags).join(', ');
+    const img = it.img ? `<img class="thumb sm" src="${it.img}" alt="${it.name}">` : '';
+    return `<tr>
+      <td>${img}</td><td>${it.part||''}</td><td>${it.name||''}</td><td class="num">${it.stars||0}</td>
+      <td>${it.flair||'-'}</td><td>${it.simple||'-'}</td><td>${it.elegant||'-'}</td>
+      <td>${it.lively||'-'}</td><td>${it.chic||'-'}</td>
+      <td>${it.cute||'-'}</td><td>${it.sexy||'-'}</td>
+      <td>${it.pure||'-'}</td><td>${it.cool||'-'}</td><td>${it.warm||'-'}</td>
+      <td>${tgs}</td><td class="num">${Number(it.score).toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderByPart(){
+  const stageId=document.getElementById('stageSelect').value || (stages[0] && stages[0].stage_id);
+  const stage=stages.find(s=>s.stage_id===stageId) || stages[0];
+  let list=getFilteredList(stage);
+  const groups={}; for(const it of list) (groups[it.part]=groups[it.part]||[]).push(it);
+  const wrap=document.getElementById('byPartWrap'); const partsSorted=Object.keys(groups).sort();
+  wrap.innerHTML = partsSorted.map(part=>{
+    const arr=groups[part].slice().sort((a,b)=> b.score-a.score);
+    const rows=arr.map(it=>{
+      const tgs=parseTags(it.tags).join(', ');
+      const img = it.img ? `<img class="thumb sm" src="${it.img}" alt="${it.name}">` : '';
+      return `<tr>
+        <td>${img}</td><td>${it.name||''}</td><td class="num">${it.stars||0}</td>
+        <td>${it.flair||'-'}</td><td>${it.simple||'-'}</td><td>${it.elegant||'-'}</td>
+        <td>${it.lively||'-'}</td><td>${it.chic||'-'}</td>
+        <td>${it.cute||'-'}</td><td>${it.sexy||'-'}</td>
+        <td>${it.pure||'-'}</td><td>${it.cool||'-'}</td><td>${it.warm||'-'}</td>
+        <td>${tgs}</td><td class="num">${Number(it.score).toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+    return `<details class="group" open>
+      <summary>${part} <span class="countpill">${arr.length}</span></summary>
+      <div class="inner"><div style="overflow:auto;max-height:50vh">
+        <table>
+          <thead><tr>
+            <th class="nowrap">이미지</th><th class="nowrap">이름</th><th class="num nowrap">별</th>
+            <th>화려</th><th>심플</th><th>우아</th><th>활발</th><th>시크</th>
+            <th>큐티</th><th>섹시</th><th>청순</th><th>청량</th><th>포근</th>
+            <th>태그</th><th class="num nowrap">계산 점수</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div></div>
+    </details>`;
+  }).join('') || '<div class="empty">표시할 데이터가 없습니다.</div>';
+}
+
+function renderAll(){ render(); renderTable(); renderByPart(); }
+
+function init(){
+  document.getElementById('itemCount').textContent = (window.items||[]).length;
+  document.getElementById('stageCount').textContent = (window.stages||[]).length;
+  document.getElementById('skillCount').textContent = 0;
+  // 태그
+  const panel=document.getElementById('tagsPanel');
+  panel.innerHTML = TAG_CATALOG_FULL.map(t=>`<label class="tag-chip"><input type="checkbox" value="${t}" data-tagcb><span>${t}</span></label>`).join('');
+  document.getElementById('clearTags').addEventListener('click', ()=>{ panel.querySelectorAll('input[data-tagcb]').forEach(cb=> cb.checked=false); renderAll(); });
+  panel.addEventListener('change', renderAll);
+  document.querySelectorAll('input[name="tagMode"]').forEach(r=> r.addEventListener('change', renderAll));
+
+  // 컨트롤
+  ['stageSelect','partFilter','sortBy','ownedOnly'].forEach(id=> document.getElementById(id).addEventListener('change', renderAll));
+  document.getElementById('tableSearch').addEventListener('input', renderTable);
+  document.getElementById('tableClear').addEventListener('click', ()=>{ document.getElementById('tableSearch').value=''; renderTable(); });
+  // 탭
+  document.querySelectorAll('.tab').forEach(b=> b.addEventListener('click', ()=> activateTab(b.dataset.tab)));
+  // 스테이지 선택
+  document.getElementById('stageSelect').innerHTML = stages.map(s=> `<option value="${s.stage_id}">${s.stage_id}</option>`).join('');
+  renderAll();
+}
+document.addEventListener('DOMContentLoaded', function(){ /* wait for data via iframes */ });
+
+function countByPart(){
+  const c = {};
+  (items||[]).forEach(it=>{ c[it.part] = (c[it.part]||0)+1; });
+  return c;
+}
+function renderPartCounts(){
+  const wrap = document.getElementById('partCounts');
+  if(!wrap) return;
+  const counts = countByPart();
+  wrap.innerHTML = Object.entries(counts).map(([p,n])=>`<span class="pill">${p}: ${n}</span>`).join("");
+}
+document.addEventListener('DOMContentLoaded', renderPartCounts);
+</script>
+<script>
+// --- Deduplicate and update "마음의 주말" ---
+(function(){
+  const arr = (window.items || window.ITEMS || []);
+  const keyOf = (it)=> (String(it?.part||'').trim() + "@@" + String(it?.name||'').trim());
+  const seen = new Map();
+  const dedup = [];
+  const copyIfBetter = (tgt, src, p) => {
+    const sv = src[p];
+    if(sv === undefined || sv === null) return;
+    const s = String(sv).trim();
+    const tv = tgt[p];
+    const t = (tv === undefined || tv === null) ? "" : String(tv).trim();
+    if(t === "" || t === "-" ) tgt[p] = sv; // fill empty/placeholder
+  };
+  const mergeBonus = (tgt, src, p) => {
+    const sv = Number(src[p]);
+    if(!Number.isFinite(sv)) return;
+    const tv = Number(tgt[p]);
+    if(!Number.isFinite(tv) || sv !== tv) tgt[p] = sv;
+  };
+  for(const it of arr){
+    const k = keyOf(it);
+    if(!seen.has(k)){
+      seen.set(k, it);
+      dedup.push(it);
+    }else{
+      const tgt = seen.get(k);
+      ["stars","img","tags","flair","simple","elegant","lively","chic","cute","sexy","pure","cool","warm"]
+        .forEach(p=> copyIfBetter(tgt, it, p));
+      ["flair_bonus","simple_bonus","elegant_bonus","lively_bonus","chic_bonus","cute_bonus","sexy_bonus","pure_bonus","cool_bonus","warm_bonus"]
+        .forEach(p=> mergeBonus(tgt, it, p));
+    }
+  }
+  window.items = dedup;
+
+  // Ensure target item exists and is updated with latest data
+
+  let target = window.items.find(it=> String(it.part).trim()==="원피스" && String(it.name).trim()==="마음의 주말");
+  if(target){ Object.assign(target, updated); }
+  else { window.items.push(updated); }
+
+  // --- Patch score function to include *_bonus if present ---
+  try{
+    const attrs=['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
+    const orig = window.scoreItemForStage;
+    if(typeof orig !== "function"){
+      window.scoreItemForStage = function(item, stage){
+        if(!stage) return 0;
+        const factor = (toNum(stage.weight||9))/9;
+        const stageW = {...stage};
+        attrs.forEach(a => stageW[a] = toNum(stageW[a]||0) * factor);
+        let base = 0;
+        for(const a of attrs){
+          const grade = gradeToScore(item[a]);
+          const bonus = toNum(item[`${a}_bonus`]||0);
+          base += toNum(stageW[a]) * (grade + bonus);
+        }
+        return base * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
+      };
+    }else{
+      window.scoreItemForStage = function(item, stage){
+        if(!stage) return 0;
+        const factor = (toNum(stage.weight||9))/9;
+        const stageW = {...stage};
+        attrs.forEach(a => stageW[a] = toNum(stageW[a]||0) * factor);
+        let base = 0;
+        for(const a of attrs){
+          const grade = gradeToScore(item[a]);
+          const bonus = toNum(item[`${a}_bonus`]||0);
+          base += toNum(stageW[a]) * (grade + bonus);
+        }
+        return base * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
+      };
+    }
+  }catch(e){ console.warn("score patch failed:", e); }
+})();
+</script>
+<script>
+/* Global de-duplication by (part + normalized name).
+   Name normalization removes spaces/punct and common particles (의/와/과) to catch variants like '소녀의고양이' vs '소녀와 고양이'. */
+(function(){
+  const arr = (window.items || window.ITEMS || []);
+  const normName = (s)=> String(s||"")
+    .replace(/[ \t\r\n._-]+/g,"")
+    .replace(/[의와과]/g,"") // drop common particles
+    .toLowerCase();
+  const key = (it)=> String(it.part||"").trim()+"@@"+normName(it.name);
+  const best = new Map();
+  const merge = (a,b)=>{
+    const out = {...a};
+    const fields = ["stars","img","tags","flair","simple","elegant","lively","chic","cute","sexy","pure","cool","warm","name","part"];
+    const bonuses = ["flair_bonus","simple_bonus","elegant_bonus","lively_bonus","chic_bonus","cute_bonus","sexy_bonus","pure_bonus","cool_bonus","warm_bonus"];
+    const isEmpty = (v)=> v==null || String(v).trim()==="" || String(v).trim()==="-";
+    // prefer non-empty image
+    if(isEmpty(out.img) && !isEmpty(b.img)) out.img = b.img;
+    // fill empties
+    for(const f of fields){
+      if(isEmpty(out[f]) && !isEmpty(b[f])) out[f]=b[f];
+    }
+    // bonuses: prefer numeric; if both numeric, take larger absolute value
+    for(const f of bonuses){
+      const av = Number(out[f]);
+      const bv = Number(b[f]);
+      if(Number.isFinite(bv)){
+        if(!Number.isFinite(av) || Math.abs(bv)>Math.abs(av)) out[f]=bv;
+      }
+    }
+    return out;
+  };
+  for(const it of arr){
+    const k = key(it);
+    if(!best.has(k)) best.set(k, it);
+    else best.set(k, merge(best.get(k), it));
+  }
+  // Replace items with merged unique list
+  const unique = Array.from(best.values());
+  window.items = unique;
+})();
+</script>
+<!-- Owned items fix: parse/apply/save/load -->
+<script>
+(function(){
+  const OWNED_KEY = window.OWNED_KEY || 'nikki_owned_names';
+  const $ = (id)=> document.getElementById(id);
+
+  // Robust split: commas/semicolons/newlines or 2+ spaces separate names.
+  function parseOwned(text){
+    return String(text||'')
+      .split(/[\n\r;,]+|\s{2,}/g)
+      .map(s=>s.trim())
+      .filter(Boolean);
+  }
+const normName = (s)=> String(s||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'');
+      });
+    }
+    if(saveBtn){
+      saveBtn.addEventListener('click', ()=>{
+        saveOwned();
+        const t = document.getElementById('toast'); if(t){ t.textContent = '로컬 저장 완료'; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1000); }
+      });
+    }
+    if(clearBtn){
+      clearBtn.addEventListener('click', ()=>{
+        setOwned([]);
+        if(ta) ta.value = '';
+        try{ localStorage.removeItem(OWNED_KEY); }catch(e){}
+        if(typeof window.renderAll === 'function') window.renderAll();
+        const t = document.getElementById('toast'); if(t){ t.textContent = '보유 초기화'; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1000); }
+      });
+    }
+  }
+
+  // Load after the original init, then re-render so badges reflect owned state.
+  document.addEventListener('DOMContentLoaded', ()=>{
+    loadOwned();
+    bindOwnedUI();
+    if(typeof window.renderAll === 'function') window.renderAll();
+  });
+})();
+</script>
+<!-- De-dup & image fallback patch -->
+<script>
+(function(){
+  const norm = (s)=> String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim();
+
+  function dedupItems(){
+    if(!Array.isArray(window.ITEMS)) return {removed:0};
+    const seen = new Set();
+    const out = [];
+    let removed = 0;
+    for(const it of window.ITEMS){
+      const key = norm(it && it.name);
+      if(!key){ out.push(it); continue; }
+      if(seen.has(key)){ removed++; continue; }
+      seen.add(key);
+      out.push(it);
+    }
+    if(removed > 0){
+      window.ITEMS = out;
+    }
+    return {removed};
+  }
+
+  // Global image onerror fallback for Google Drive thumbs
+  function attachImgFallback(){
+    document.addEventListener('error', function(e){
+      const el = e.target;
+      if(!(el && el.tagName === 'IMG')) return;
+      try{
+        const u = new URL(el.src);
+        if(u.hostname === 'drive.google.com' && u.pathname === '/thumbnail'){
+          const id = u.searchParams.get('id');
+          if(id && !el.dataset.fallbackTried){
+            el.dataset.fallbackTried = '1';
+            el.src = 'https://drive.google.com/uc?export=view&id=' + id;
+          }
+        }
+      }catch(err){ /* ignore */ }
+    }, true);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    const {removed} = dedupItems();
+    attachImgFallback();
+    if(typeof window.renderAll === 'function'){
+      window.renderAll();
+    }
+    if(removed){
+      const t = document.getElementById('toast'); 
+      if(t){ t.textContent = `중복 제거: ${removed}개`; t.classList.add('show'); setTimeout(()=> t.classList.remove('show'), 1200); }
+      console.log('[dedup] removed', removed);
+    }
+  });
+})();
+</script>
+<!-- Strong DOM dedup + image overrides + renderAll wrapper -->
+<script>
+(function(){
+  const TOAST = ()=> document.getElementById('toast');
+  const showToast = (msg)=>{ const t=TOAST(); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1200); };
+
+  const NORM = (s)=> String(s||'')
+    .toLowerCase()
+    .replace(/[\u3000\u00A0\s]+/g,'')   // all spaces
+    .replace(/[~!@#$%^&*()\-_=+\[\]{};:'"\\|,<.>/?·・｡、，．]/g,''); // punctuation
+
+  // Known image overrides by visible name => Drive file id
+  const IMG_OVERRIDES = {
+    "시어썸머":"16h2tV0wFSxU7F4uNePec9l7R2pE2xN-t",
+    "씨솔트크림":"1uVgAy0iUKQA5GqVeZa1EdokPnxfqeIPp"
+  };
+
+  function findName(el){
+    if(!el) return "";
+    if(el.dataset && el.dataset.name) return el.dataset.name;
+    // common title/name nodes
+    let t = el.querySelector('[data-field="name"], .item-name, .card-title, .title, .name, .label');
+    if(t && t.textContent) return t.textContent.trim();
+    // aria/alt fallbacks
+    if(el.getAttribute){
+      const a = el.getAttribute('aria-label') || el.getAttribute('title') || "";
+      if(a) return a.trim();
+    }
+    return "";
+  }
+
+  function dedupDOM(){
+    const cards = Array.from(document.querySelectorAll('[data-item], [data-name], .item-card, .card, li'));
+    const seen = new Set();
+    let removed = 0;
+    for(const el of cards){
+      const nm = findName(el);
+      if(!nm) continue;
+      const key = NORM(nm);
+      if(!key) continue;
+      if(seen.has(key)){
+        el.remove();
+        removed++;
+      }else{
+        seen.add(key);
+      }
+    }
+    if(removed) showToast(`중복 제거: ${removed}개`);
+    return removed;
+  }
+
+  function fixImages(){
+    // Attach global onerror fallback once
+    if(!window.__imgFallbackAttached){
+      document.addEventListener('error', function(e){
+        const el = e.target;
+        if(!(el && el.tagName === 'IMG')) return;
+        try{
+          const u = new URL(el.src);
+          if(u.hostname === 'drive.google.com' && u.pathname === '/thumbnail'){
+            const id = u.searchParams.get('id');
+            if(id && !el.dataset.fallbackTried){
+              el.dataset.fallbackTried = '1';
+              el.src = 'https://drive.google.com/uc?export=view&id='+id;
+            }
+          }
+        }catch(err){}
+      }, true);
+      window.__imgFallbackAttached = true;
+    }
+
+    // Apply explicit overrides by name
+    const all = Array.from(document.querySelectorAll('img'));
+    for(const img of all){
+      const card = img.closest('[data-item], .item-card, .card, li') || img.parentElement;
+      const nm = NORM(findName(card));
+      if(IMG_OVERRIDES[nm] && !img.dataset.overrideApplied){
+        img.dataset.overrideApplied = '1';
+        img.src = 'https://drive.google.com/uc?export=view&id='+IMG_OVERRIDES[nm];
+      }
+    }
+  }
+
+  // Wrap renderAll so dedup & image fixes run after every render
+  (function wrapRender(){
+    if(typeof window.renderAll === 'function'){
+      const orig = window.renderAll;
+      window.renderAll = function(){
+        const r = orig.apply(this, arguments);
+        // run after DOM updates
+        queueMicrotask(()=>{ fixImages(); dedupDOM(); });
+        return r;
+      };
+    }
+  })();
+
+  // Also run once on initial load and whenever DOM changes (defensive)
+  document.addEventListener('DOMContentLoaded', ()=>{
+    fixImages();
+    dedupDOM();
+  });
+  const mo = new MutationObserver(()=>{ fixImages(); dedupDOM(); });
+  mo.observe(document.documentElement, {childList:true, subtree:true});
+})();
+</script>
+<script>
+// === Bonus & Tag scoring patch (append-only, safe redefinition) ===
+(function(){
+  // Per-stage tag list for 10% tag bonus (multiplicative)
+  const STAGE_TAGS = {
+    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
+    "[메인] 1-6 의혹 속으로": ["운동룩"],
+    "[메인] 1-7 '흑역사'": ["드레스"],
+    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
+    "[메인] 1-9 어둠 속에서": ["젠더리스"]
+  };
+  const TAG_BONUS_PCT = 10; // 사용자가 지정한 태그 가중치 10%
+
+  const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
+  const gradeScore = (window.gradeScore) || {"SSS":3200,"SS":2612.7,"S":2089.35,"A":1690.65,"B":1309.8,"C":817.5,"-":0,"":0,"null":0};
+  const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
+  const STAR_MULT = (window.STAR_MULT) || [1.00,1.00,1.03,1.06,1.09,1.12,1.15];
+  const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
+  const PART_WEIGHTS = (window.PART_WEIGHTS) || {"헤어 스타일":0.5,"원피스":2,"아우터":0.2,"상의":1,"하의":1,"양말":0.3,"신발":0.4,"장식":0.2,"뷰티":0.1};
+
+  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
+
+  function tagsMatch(item, stageId){
+    const stageTags = STAGE_TAGS[stageId] || [];
+    if(stageTags.length===0) return false;
+    const itemTags = new Set(parseTags(item.tags));
+    return stageTags.some(t => itemTags.has(t));
+  }
+
+  const ATTRS = ['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
+
+  // Override with bonus-aware + tag-aware scoring
+  window.scoreItemForStage = function(item, stage){
+    if(!stage) return 0;
+    // Normalize stage weights and include the global "weight" factor (defaults to 9 in original file)
+    const factor = (toNum(stage.weight||9))/9;
+    const stageW = {...stage};
+    ATTRS.forEach(a => stageW[a] = toNum(stageW[a]||0) * factor);
+
+    // Base sum by attributes, including *_bonus numeric fields
+    let base = 0;
+    for(const a of ATTRS){
+      const grade = gradeToScore(item[a]);
+      const bonus = toNum(item[a + '_bonus'] || 0);
+      // Stage-defined extra attrs: if a is in stage.extras and this attr is NOT main/sub (stage[a] == 0), add extras_pct
+    (function(){
+      try{
+        var extras = (typeof window.__getStageExtraAttrs==='function') ? __getStageExtraAttrs(stage) : [];
+        if (Array.isArray(extras) && extras.indexOf(a) !== -1){
+          var pct = (typeof stage[a] === 'number') ? stage[a] : (+stage[a]||0);
+          if (!pct){ // only when not main/sub
+            var ep = (typeof window.__getStageExtraPct==='function') ? __getStageExtraPct(stage) : 0.05;
+            grade = grade * (1 + ep);
+          }
+        }
+      }catch(e){}
+    })();
+    base += toNum(stageW[a]) * (grade + bonus);
+    }
+
+    // Apply per-stage tag bonus multiplicatively if any tag matches
+    const selectedStageId = stage.stage_id || "";
+    if(tagsMatch(item, selectedStageId)){
+      base *= (1 + TAG_BONUS_PCT/100);
+    }
+
+    // Apply star and part multipliers (unchanged from original)
+    return base * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
+  };
+
+  // Re-render if available so scores update immediately after load
+  if(typeof window.renderAll === 'function'){
+    document.addEventListener('DOMContentLoaded', ()=> window.renderAll());
+  }
+})();
+</script>
+<script>
+// === Bonus & Tag scoring patch v2 (percent-based weights) ===
+(function(){
+  // Per-stage tag list for 10% tag bonus (multiplicative)
+  const STAGE_TAGS = {
+    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
+    "[메인] 1-6 의혹 속으로": ["운동룩"],
+    "[메인] 1-7 '흑역사'": ["드레스"],
+    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
+    "[메인] 1-9 어둠 속에서": ["젠더리스"]
+  };
+  const TAG_BONUS_PCT = 10; // 태그 가중치 10%
+
+  const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
+  const gradeScore = (window.gradeScore) || {"SSS":3200,"SS":2612.7,"S":2089.35,"A":1690.65,"B":1309.8,"C":817.5,"-":0,"":0,"null":0};
+  const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
+  const STAR_MULT = (window.STAR_MULT) || [1.00,1.00,1.03,1.06,1.09,1.12,1.15];
+  const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
+  const PART_WEIGHTS = (window.PART_WEIGHTS) || {"헤어 스타일":0.5,"원피스":2,"아우터":0.2,"상의":1,"하의":1,"양말":0.3,"신발":0.4,"장식":0.2,"뷰티":0.1};
+
+  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
+  const normTag = (t)=> String(t||'').replace(/\s+/g,'');
+
+  function tagsMatch(item, stageId){
+    const stageTags = (STAGE_TAGS[stageId]||[]).map(normTag);
+    if(stageTags.length===0) return false;
+    const itemTags = new Set(parseTags(item.tags).map(normTag));
+    return stageTags.some(t => itemTags.has(t));
+  }
+
+  const ATTRS = ['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
+
+  // Interpret stage values as percent bonuses: 
+  //   20 -> x1.20, 10 -> x1.10, 1 -> x1.00 (demo), 0 -> ignore
+  function toPercentMultiplier(raw){
+    const r = toNum(raw||0);
+    if(r <= 0) return 0;          // 0 means this attr not used on this stage
+    if(r >= 2) return 1 + (r/100);// 10 => 1.10, 20 => 1.20
+    return 1;                      // 1 (demo/test stage) means neutral
+  }
+
+  // Override with bonus-aware + tag-aware + percent-based weights
+  window.scoreItemForStage = function(item, stage){
+    if(!stage) return 0;
+    const factor = (toNum(stage.weight||9))/9; // keep global weight scaling
+
+    let base = 0;
+    for(const a of ATTRS){
+      const mult = toPercentMultiplier(stage[a]);
+      if(mult === 0) continue; // stage doesn't care about this attr
+      const grade = gradeToScore(item[a]);
+      const bonus = toNum(item[a + '_bonus'] || 0);
+      base += mult * (grade + bonus);
+    }
+
+    // If stage defines no attrs (edge), fall back to equal weighting of all attrs
+    if(base === 0){
+      let tmp=0;
+      for(const a of ATTRS){
+        const grade = gradeToScore(item[a]);
+        const bonus = toNum(item[a + '_bonus'] || 0);
+        tmp += (grade + bonus);
+      }
+      base = tmp / ATTRS.length;
+    }
+
+    // Apply per-stage tag bonus multiplicatively if any tag matches
+    const selectedStageId = stage.stage_id || "";
+    if(tagsMatch(item, selectedStageId)){
+      base *= (1 + TAG_BONUS_PCT/100);
+    }
+
+    // Apply global factor, star, and part multipliers
+    return base * factor * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
+  };
+
+  // Re-render so scores update immediately after load
+  if(typeof window.renderAll === 'function'){
+    document.addEventListener('DOMContentLoaded', ()=> window.renderAll());
+  }
+})();
+</script>
+<script>
+// === Bonus & Tag scoring patch v3 (percent-based weights + percent-based *_bonus) ===
+(function(){
+  // Per-stage tag list for 10% tag bonus (multiplicative)
+  const STAGE_TAGS = {
+    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
+    "[메인] 1-6 의혹 속으로": ["운동룩"],
+    "[메인] 1-7 '흑역사'": ["드레스"],
+    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
+    "[메인] 1-9 어둠 속에서": ["젠더리스"]
+  };
+  const TAG_BONUS_PCT = 10; // 태그 가중치 10%
+
+  const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
+  const gradeScore = (window.gradeScore) || {"SSS":3200,"SS":2612.7,"S":2089.35,"A":1690.65,"B":1309.8,"C":817.5,"-":0,"":0,"null":0};
+  const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
+  const STAR_MULT = (window.STAR_MULT) || [1.00,1.00,1.03,1.06,1.09,1.12,1.15];
+  const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
+  const PART_WEIGHTS = (window.PART_WEIGHTS) || {"헤어 스타일":0.5,"원피스":2,"아우터":0.2,"상의":1,"하의":1,"양말":0.3,"신발":0.4,"장식":0.2,"뷰티":0.1};
+
+  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
+  const normTag = (t)=> String(t||'').replace(/\s+/g,'');
+
+  function tagsMatch(item, stageId){
+    const stageTags = (STAGE_TAGS[stageId]||[]).map(normTag);
+    if(stageTags.length===0) return false;
+    const itemTags = new Set(parseTags(item.tags).map(normTag));
+    return stageTags.some(t => itemTags.has(t));
+  }
+
+  const ATTRS = ['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
+
+  // Interpret stage values as percent bonuses: 
+  //   20 -> x1.20, 10 -> x1.10, 1 -> x1.00 (demo), 0 -> ignore
+  function toPercentMultiplier(raw){
+    const r = toNum(raw||0);
+    if(r <= 0) return 0;          // 0 means this attr not used on this stage
+    if(r >= 2) return 1 + (r/100);// 10 => 1.10, 20 => 1.20
+    return 1;                      // 1 (demo/test stage) means neutral
+  }
+
+  // Override with: (grade * (1 + bonusPct/100)) * stageMultiplier
+  window.scoreItemForStage = function(item, stage){
+    if(!stage) return 0;
+    const factor = (toNum(stage.weight||9))/9; // keep global weight scaling
+
+    let base = 0;
+    for(const a of ATTRS){
+      const mult = toPercentMultiplier(stage[a]);
+      if(mult === 0) continue; // stage doesn't care about this attr
+      const grade = gradeToScore(item[a]);
+      const bonusPct = toNum(item[a + '_bonus'] || 0);
+      const attrScore = grade * (1 + (bonusPct/100)); // <-- 보너스는 퍼센트
+      base += mult * attrScore;
+    }
+
+    // If stage defines no attrs (edge), fall back to equal weighting of all attrs
+    if(base === 0){
+      let tmp=0;
+      for(const a of ATTRS){
+        const grade = gradeToScore(item[a]);
+        const bonusPct = toNum(item[a + '_bonus'] || 0);
+        tmp += grade * (1 + (bonusPct/100));
+      }
+      base = tmp / ATTRS.length;
+    }
+
+    // Apply per-stage tag bonus multiplicatively if any tag matches
+    const selectedStageId = stage.stage_id || "";
+    if(tagsMatch(item, selectedStageId)){
+      base *= (1 + TAG_BONUS_PCT/100);
+    }
+
+    // Apply global factor, star, and part multipliers
+    return base * factor * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
+  };
+
+  // Re-render so scores update immediately after load
+  if(typeof window.renderAll === 'function'){
+    document.addEventListener('DOMContentLoaded', ()=> window.renderAll());
+  }
+})();
+</script>
+
+  </script>
+
+<script>
+function toThumb(u){
+    try{
+      if(!u) return u;
+      if(/drive\.google\.com\/thumbnail\?id=/.test(u)) return u;
+      var m = String(u).match(/\/d\/([a-zA-Z0-9_-]{10,})\/view/);
+      if(m) return "https://drive.google.com/thumbnail?id="+m[1];
+      if(/^[a-zA-Z0-9_-]{10,}$/.test(u)) return "https://drive.google.com/thumbnail?id="+u;
+    }catch(e){}
+    return u;
+  }
+
+  var sane = NEW_ITEMS.map(function(it){
+    var out = Object.assign({}, it);
+    out.img = toThumb(out.img);
+    return out;
+  });
+  if(Array.isArray(window.items)) window.items.push.apply(window.items, sane);
+  if(typeof window.renderAll === "function") window.renderAll();
+})();
+
+</script>
+
+<script>
+(function(){
+  var got = {items:false, stages:false};
+  function maybeInit(){
+    if (got.items && got.stages) {
+      if (!window.items) window.items = [];
+      if (!window.stages) window.stages = [];
+      if (typeof init === 'function') init();
+    }
+  }
+  window.addEventListener('message', function(ev){
+    var msg = ev.data;
+    if (!msg || !msg.__splitData) return;
+    if (msg.key === 'items') { window.items = msg.data; got.items = true; }
+    if (msg.key === 'stages') { window.stages = msg.data; got.stages = true; }
+    maybeInit();
+  });
+})();
+</script>
+<iframe src="items_frame_v2.html" style="display:none" aria-hidden="true"></iframe>
+<iframe src="stages_frame_v2.html" style="display:none" aria-hidden="true"></iframe>
+
+
+<script>
+(function(){
+  var inited = false;
+  var origInit = window.init;
+  window.init = function(){
+    if (typeof origInit === 'function') origInit();
+    if (typeof renderPartCounts === 'function') renderPartCounts();
+  };
+})();
+</script>
+
+
+<script>
+(function(){
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'')
+      .split(/[\n\r;,]+|\s{2,}/g)
+      .map(s=> s.trim())
+      .filter(Boolean);
+  }
+  function computePerPart(){
+    var items = (window.items || window.ITEMS || []);
+    var itemByName = Object.create(null);
+    for (var it of items){
+      var key = norm(it && it.name);
+      if (key && !(key in itemByName)) itemByName[key] = it;
+    }
+    // totals
+    var totals = Object.create(null);
+    for (var it of items){
+      var p = (it && it.part) || '(기타)';
+      if (!totals[p]) totals[p] = 0;
+      totals[p]++;
+    }
+    // owned
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    var owned = Object.create(null);
+    for (var n of names){
+      var it = itemByName[norm(n)];
+      if (!it) continue;
+      var p = it.part || '(기타)';
+      if (!owned[p]) owned[p] = 0;
+      owned[p]++;
+    }
+    // build rows
+    var parts = Object.keys(totals).sort();
+    var rows = parts.map(function(p){
+      var t = totals[p]||0;
+      var o = owned[p]||0;
+      var rate = t ? ((o*100)/t).toFixed(1) + '%' : '-';
+      return { part:p, owned:o, total:t, rate:rate };
+    });
+    return rows;
+  }
+  function renderPerPartTable(){
+    var tbody = document.querySelector('#partSummaryTable tbody');
+    if (!tbody) return;
+    var rows = computePerPart();
+    tbody.innerHTML = rows.map(function(r){
+      return '<tr data-part=\"'+ r.part.replace(/"/g,'&quot;') +'\">'
+        + '<td>'+ r.part +'</td>'
+        + '<td>'+ r.owned +'</td>'
+        + '<td>'+ r.total +'</td>'
+        + '<td>'+ r.rate +'</td>'
+        + '</tr>';
+    }).join('');
+  }
+  // click -> sync to existing partFilter
+  document.addEventListener('click', function(ev){
+    var tr = ev.target && ev.target.closest && ev.target.closest('#partSummaryTable tbody tr');
+    if (!tr) return;
+    var part = tr.getAttribute('data-part') || '';
+    var sel = document.getElementById('partFilter');
+    if (sel){
+      // Try to match exact option; fallback to empty if not found
+      var found = false;
+      for (var i=0;i<sel.options.length;i++){
+        if (sel.options[i].value === part){ sel.selectedIndex = i; found = true; break; }
+      }
+      if (!found) sel.value = '';
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  }, false);
+  // keep table in sync
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){ renderPerPartTable(); }
+  });
+  var origInit = window.init;
+  window.init = function(){
+    if (typeof origInit === 'function') origInit();
+    renderPerPartTable();
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(renderPerPartTable, 50); });
+})();
+</script>
+
+
+<script>
+(function(){
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'')
+      .split(/[\n\r;,]+|\s{2,}/g)
+      .map(s=> s.trim())
+      .filter(Boolean);
+  }
+  function computePartStats(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var it of items){
+      var p = it && it.part || '(기타)';
+      totals[p] = (totals[p]||0)+1;
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    var ownedPer = Object.create(null);
+    var ownedTotal = 0;
+    for (var n of names){
+      var it = byName[norm(n)];
+      if (it){
+        var p = it.part || '(기타)';
+        ownedPer[p] = (ownedPer[p]||0)+1;
+        ownedTotal++;
+      }
+    }
+    var totalCount = (window.items||window.ITEMS||[]).length;
+    // Build sorted parts
+    var parts = Object.keys(totals).sort();
+    return {parts:parts, totals:totals, ownedPer:ownedPer, ownedTotal:ownedTotal, totalCount: totalCount};
+  }
+  function renderPartBar(){
+    var bar = document.getElementById('partBar');
+    if (!bar) return;
+    var stats = computePartStats();
+    // Summary mini
+    var mini = document.getElementById('ownedSummaryMini');
+    if (mini){ mini.textContent = '보유 ' + stats.ownedTotal + ' / 전체 ' + stats.totalCount; }
+
+    bar.innerHTML = stats.parts.map(function(p){
+      var o = stats.ownedPer[p] || 0;
+      var t = stats.totals[p] || 0;
+      return '<span class="pill-small" data-part="'+ p.replace(/"/g,'&quot;') +'" title="'+ p +'">'
+        + '<span class="k">'+ p +'</span>'
+        + '<span class="v">'+ o +'/'+ t +'</span>'
+        + '</span>';
+    }).join('');
+  }
+  // Click a pill -> sync to existing part filter
+  document.addEventListener('click', function(ev){
+    var el = ev.target.closest && ev.target.closest('.pill-small');
+    if (!el) return;
+    var part = el.getAttribute('data-part') || '';
+    var sel = document.getElementById('partFilter');
+    if (sel){
+      var found = false;
+      for (var i=0;i<sel.options.length;i++){
+        if (sel.options[i].value === part){ sel.selectedIndex = i; found = true; break; }
+      }
+      if (!found) sel.value = '';
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  }, false);
+  // Toggle collapse (single line vs hidden)
+  document.addEventListener('click', function(ev){
+    if (ev.target && ev.target.id === 'togglePartBar'){
+      var bar = document.getElementById('partBar');
+      if (!bar) return;
+      var isHidden = bar.style.display === 'none';
+      bar.style.display = isHidden ? 'flex' : 'none';
+      ev.target.textContent = isHidden ? '접기' : '펼치기';
+    }
+  });
+  // Update on input & after init
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){ renderPartBar(); }
+  });
+  var origInit = window.init;
+  window.init = function(){
+    if (typeof origInit === 'function') origInit();
+    renderPartBar();
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(renderPartBar, 50); });
+})();
+</script>
+
+
+<script>
+(function(){
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'')
+      .split(/[\n\r;,]+|\s{2,}/g)
+      .map(s=> s.trim())
+      .filter(Boolean);
+  }
+  function computeStats(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = {}, byName={};
+    for (var it of items){
+      var p = it && it.part || '(기타)';
+      totals[p] = (totals[p]||0)+1;
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    var ownedPer = {}, ownedTotal = 0;
+    for (var n of names){
+      var it = byName[norm(n)];
+      if (it){
+        var p = it.part || '(기타)';
+        ownedPer[p] = (ownedPer[p]||0)+1;
+        ownedTotal++;
+      }
+    }
+    return {totals:totals, ownedPer:ownedPer, ownedTotal:ownedTotal, totalCount:items.length};
+  }
+  function renderPartBar(){
+    var stats = computeStats();
+    var mini = document.getElementById('ownedSummaryMini');
+    if (mini){ mini.textContent = '보유 ' + stats.ownedTotal + ' / 전체 ' + stats.totalCount; }
+    var bar = document.getElementById('partBar');
+    if (!bar) return;
+    var parts = [];
+    var sel = document.getElementById('partFilter');
+    if (sel){
+      for (var i=0;i<sel.options.length;i++){
+        var v = sel.options[i].value;
+        if (!v) continue; // skip 전체
+        parts.push(v);
+      }
+    } else {
+      parts = Object.keys(stats.totals).sort();
+    }
+    bar.innerHTML = parts.map(function(p){
+      var o = stats.ownedPer[p]||0;
+      var t = stats.totals[p]||0;
+      return '<span class="pill-small" data-part="'+ p.replace(/"/g,'&quot;') +'">'
+        + '<span class="k">'+ p +'</span>'
+        + '<span class="v">'+ o +'/'+ t +'</span>'
+        + '</span>';
+    }).join('');
+  }
+  window.renderPartBar = renderPartBar;
+  // Hook to init
+  var origInit = window.init;
+  window.init = function(){
+    if (typeof origInit === 'function') origInit();
+    renderPartBar();
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(renderPartBar,50); });
+  document.addEventListener('input', function(ev){ if(ev.target && ev.target.id==='ownedInput') renderPartBar(); });
+})();
+</script>
+
+
+<script>
+(function(){
+  var ORDER_WEAR = ["헤어 스타일","원피스","아우터","상의","하의","양말","신발"];
+  var ORDER_ACC = ["모자","헤어 장식","얼굴 장식","귀걸이","목걸이","팔찌 - 손목장식","팔찌 - 장갑","팔찌- 반지","소지품","등 장식 - 날개","등 장식 - 꼬리","등 장식 - 등 장식","특수 아이템 - 발찌","특수 아이템 - 크로스백","특수 아이템 - 블로팅","특수 아이템 - 타투","탑승물"];
+  var ORDER_MAKEUP = ["아이브로우","컬러 렌즈","아이라이너","아이섀도우","립 메이크업","속눈썹","블러셔","페이스 타투"];
+  var GROUPS = { wear: ORDER_WEAR, acc: ORDER_ACC, makeup: ORDER_MAKEUP };
+
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\\s\\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'').split(/[\\n\\r;,]+|\\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+  function getStats(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      var p = (it && it.part) || '';
+      totals[p] = (totals[p]||0)+1;
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var ownedPer = Object.create(null);
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    for (var j=0;j<names.length;j++){
+      var it2 = byName[norm(names[j])];
+      if (!it2) continue;
+      var pp = it2.part || '';
+      ownedPer[pp] = (ownedPer[pp]||0)+1;
+    }
+    return {totals: totals, ownedPer: ownedPer};
+  }
+  function pill(part, o, t){
+    return '<span class="chip" data-part="'+ part.replace(/"/g,'&quot;') +'" title="'+ part +'"><span class="k">'+ part +'</span><span class="v">'+ (o||0) +'/'+ (t||0) +'</span></span>';
+  }
+  function renderChips(groupKey){
+    var row = document.getElementById('partChips');
+    if (!row) return;
+    var stats = getStats();
+    var order = GROUPS[groupKey] || [];
+    row.innerHTML = order.map(function(p){
+      var o = stats.ownedPer[p] || 0;
+      var t = stats.totals[p] || 0;
+      return pill(p, o, t);
+    }).join('');
+  }
+  function setGroup(g){
+    // toggle button state
+    var tabs = document.querySelectorAll('#partTabs .gtab');
+    tabs.forEach(function(b){ b.classList.toggle('is-on', b.getAttribute('data-g')===g); });
+    renderChips(g);
+  }
+
+  // Events
+  document.addEventListener('click', function(ev){
+    var t = ev.target.closest && ev.target.closest('#partTabs .gtab');
+    if (t){
+      setGroup(t.getAttribute('data-g'));
+      return;
+    }
+    var chip = ev.target.closest && ev.target.closest('#partChips .chip');
+    if (chip){
+      var part = chip.getAttribute('data-part') || '';
+      var sel = document.getElementById('partFilter');
+      if (sel){
+        var found = false;
+        for (var i=0;i<sel.options.length;i++){
+          if (sel.options[i].value === part){ sel.selectedIndex = i; found = true; break; }
+        }
+        if (!found) sel.value = '';
+        sel.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    }
+  }, false);
+
+  // Update chips on owned input change
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      setGroup(on ? on.getAttribute('data-g') : 'wear');
+    }
+  });
+
+  // Hook into init
+  var origInit = window.init;
+  window.init = function(){
+    if (typeof origInit === 'function') origInit();
+    setGroup('wear'); // default group
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ setGroup('wear'); }, 50); });
+})();
+</script>
+
+
+<script>
+(function(){
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'').split(/[\n\r;,]+|\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+  function computeOwnedTotal(){
+    var items = (window.items || window.ITEMS || []);
+    var total = items.length || 0;
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = true;
+    }
+    var ta = document.getElementById('ownedInput');
+    var names = ta ? Array.from(new Set(parseOwned(ta.value))) : [];
+    var owned = 0;
+    for (var j=0;j<names.length;j++){
+      if (byName[norm(names[j])]) owned++;
+    }
+    return {owned: owned, total: total};
+  }
+  function updateOwnedBadges(){
+    var c = computeOwnedTotal();
+    var el1 = document.getElementById('ownedSummary');
+    var el2 = document.getElementById('ownedSummaryMini');
+    if (el1) el1.textContent = '보유 ' + c.owned + ' / 전체 ' + c.total;
+    if (el2) el2.textContent = '보유 ' + c.owned + ' / 전체 ' + c.total;
+  }
+  // hook: after init (data loaded)
+  var __origInit = window.init;
+  window.init = function(){
+    if (typeof __origInit === 'function') __origInit();
+    updateOwnedBadges();
+  };
+  // live update on input changes
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput') updateOwnedBadges();
+  });
+  // fallback on DOM ready
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(updateOwnedBadges, 100); });
+  window.updateOwnedBadges = updateOwnedBadges;
+})();
+</script>
+
+
+<script>
+(function(){
+  function markPartHeaders(){
+    var sel = document.getElementById('partFilter');
+    if (!sel) return;
+    var headers = new Set(['팔찌','등 장식','특수 아이템']);
+    for (var i=0;i<sel.options.length;i++){
+      var opt = sel.options[i];
+      if (headers.has(opt.text.trim())){
+        opt.disabled = true;            // 선택 불가
+        opt.classList.add('groupHdr');  // 진하게(볼드)
+      }
+    }
+    // 만약 현재 선택이 헤더라면 전체로 초기화
+    if (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex].disabled){
+      sel.value = '';
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  }
+  // run after init and on DOM ready
+  var __origInit_headers = window.init;
+  window.init = function(){
+    if (typeof __origInit_headers === 'function') __origInit_headers();
+    markPartHeaders();
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(markPartHeaders, 50); });
+  window.markPartHeaders = markPartHeaders;
+})();
+</script>
+
+
+<script>
+(function(){
+  var ORDER_WEAR = ["헤어 스타일","원피스","아우터","상의","하의","양말","신발"];
+  var ACC_SINGLES = ["모자","헤어 장식","얼굴 장식","귀걸이","목걸이","소지품","탑승물"];
+  var ACC_PALJJI = ["팔찌 - 손목장식","팔찌 - 장갑","팔찌 - 반지"];
+  var ACC_BACK   = ["등 장식 - 날개","등 장식 - 꼬리","등 장식 - 등 장식"];
+  var ACC_SPEC   = ["특수 아이템 - 발찌","특수 아이템 - 크로스백","특수 아이템 - 블로팅","특수 아이템 - 타투"];
+  var ORDER_MAKEUP = ["아이브로우","컬러 렌즈","아이라이너","아이섀도우","립 메이크업","속눈썹","블러셔","페이스 타투"];
+
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\\s\\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'').split(/[\\n\\r;,]+|\\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+  function getStats(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      var p = (it && it.part) || '';
+      totals[p] = (totals[p]||0)+1;
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var ownedPer = Object.create(null);
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    for (var j=0;j<names.length;j++){
+      var it2 = byName[norm(names[j])];
+      if (!it2) continue;
+      var pp = it2.part || '';
+      ownedPer[pp] = (ownedPer[pp]||0)+1;
+    }
+    return {totals: totals, ownedPer: ownedPer};
+  }
+  function sumCounts(keys, map){
+    var s = 0;
+    for (var i=0;i<keys.length;i++){
+      s += map[keys[i]] || 0;
+    }
+    return s;
+  }
+  function chipHtml(label, owned, total, partValue){
+    var pv = partValue || '';
+    return '<span class="chip" data-part="'+ pv.replace(/"/g,'&quot;') +'">'
+         +   '<span class="k">'+ label +'</span>'
+         +   '<span class="v">'+ owned +'/'+ total +'</span>'
+         + '</span>';
+  }
+  function renderChips_acc(S){
+    var html = [];
+    // singles
+    var singles = ACC_SINGLES;
+    for (var i=0;i<singles.length;i++){
+      var p = singles[i];
+      html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+    }
+    // subgroups aggregate badges (no click filter for now)
+    html.push(chipHtml("팔찌",        sumCounts(ACC_PALJJI, S.ownedPer), sumCounts(ACC_PALJJI, S.totals), ""));
+    html.push(chipHtml("등 장식",     sumCounts(ACC_BACK,   S.ownedPer), sumCounts(ACC_BACK,   S.totals), ""));
+    html.push(chipHtml("특수 아이템", sumCounts(ACC_SPEC,   S.ownedPer), sumCounts(ACC_SPEC,   S.totals), ""));
+    return html.join('');
+  }
+  function renderChips(groupKey){
+    var row = document.getElementById('partChips'); if (!row) return;
+    var S = getStats();
+    if (groupKey === 'wear'){
+      row.innerHTML = ORDER_WEAR.map(function(p){
+        return chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p);
+      }).join('');
+    } else if (groupKey === 'acc'){
+      row.innerHTML = renderChips_acc(S);
+    } else if (groupKey === 'makeup'){
+      row.innerHTML = ORDER_MAKEUP.map(function(p){
+        return chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p);
+      }).join('');
+    }
+  }
+  function setGroup(g){
+    var tabs = document.querySelectorAll('#partTabs .gtab');
+    tabs.forEach(function(b){ b.classList.toggle('is-on', b.getAttribute('data-g')===g); });
+    renderChips(g);
+  }
+  document.addEventListener('click', function(ev){
+    var chip = ev.target.closest && ev.target.closest('#partChips .chip');
+    if (!chip) return;
+    var part = chip.getAttribute('data-part') || '';
+    if (!part) return; // aggregated badges do nothing on click
+    var sel = document.getElementById('partFilter');
+    if (sel){
+      var found = false;
+      for (var i=0;i<sel.options.length;i++){
+        if (sel.options[i].value === part){ sel.selectedIndex = i; found = true; break; }
+      }
+      if (!found) sel.value = '';
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  }, false);
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      setGroup(on ? on.getAttribute('data-g') : 'wear');
+    }
+  });
+  var __origInit = window.init;
+  window.init = function(){
+    if (typeof __origInit === 'function') __origInit();
+    setGroup('wear');
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ setGroup('wear'); }, 50); });
+})();
+</script>
+
+
+<script>
+// --- override for accessory aggregated chips ---
+(function(){
+  var ORDER_WEAR = ["헤어 스타일","원피스","아우터","상의","하의","양말","신발"];
+  var ACC_SINGLES = ["모자","헤어 장식","얼굴 장식","귀걸이","목걸이","소지품","탑승물"];
+  var ACC_PALJJI = ["팔찌 - 손목장식","팔찌 - 장갑","팔찌 - 반지"];
+  var ACC_BACK   = ["등 장식 - 날개","등 장식 - 꼬리","등 장식 - 등 장식"];
+  var ACC_SPEC   = ["특수 아이템 - 발찌","특수 아이템 - 크로스백","특수 아이템 - 블로팅","특수 아이템 - 타투"];
+  var ORDER_MAKEUP = ["아이브로우","컬러 렌즈","아이라이너","아이섀도우","립 메이크업","속눈썹","블러셔","페이스 타투"];
+
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'').split(/[\n\r;,]+|\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+  function getStats(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      var p = (it && it.part) || '';
+      totals[p] = (totals[p]||0)+1;
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var ownedPer = Object.create(null);
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    for (var j=0;j<names.length;j++){
+      var it2 = byName[norm(names[j])];
+      if (!it2) continue;
+      var pp = it2.part || '';
+      ownedPer[pp] = (ownedPer[pp]||0)+1;
+    }
+    return {totals: totals, ownedPer: ownedPer};
+  }
+  function sumCounts(keys, map){
+    var s = 0;
+    for (var i=0;i<keys.length;i++) s += map[keys[i]] || 0;
+    return s;
+  }
+  function chipHtml(label, owned, total, partValue){
+    var pv = partValue || '';
+    return '<span class="chip" data-part="'+ pv.replace(/"/g,'&quot;') +'">'
+         +   '<span class="k">'+ label +'</span>'
+         +   '<span class="v">'+ owned +'/'+ total +'</span>'
+         + '</span>';
+  }
+  function renderChips2(groupKey){
+    var row = document.getElementById('partChips'); if (!row) return;
+    var S = getStats();
+    var html = [];
+    if (groupKey === 'wear'){
+      ORDER_WEAR.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+      });
+    } else if (groupKey === 'acc'){
+      ACC_SINGLES.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+      });
+      html.push(chipHtml("팔찌",        sumCounts(ACC_PALJJI, S.ownedPer), sumCounts(ACC_PALJJI, S.totals), ""));
+      html.push(chipHtml("등 장식",     sumCounts(ACC_BACK,   S.ownedPer), sumCounts(ACC_BACK,   S.totals), ""));
+      html.push(chipHtml("특수 아이템", sumCounts(ACC_SPEC,   S.ownedPer), sumCounts(ACC_SPEC,   S.totals), ""));
+    } else if (groupKey === 'makeup'){
+      ORDER_MAKEUP.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+      });
+    }
+    row.innerHTML = html.join('');
+  }
+  function setGroup2(g){
+    var tabs = document.querySelectorAll('#partTabs .gtab');
+    tabs.forEach(function(b){ b.classList.toggle('is-on', b.getAttribute('data-g')===g); });
+    renderChips2(g);
+  }
+  // Override globals if any
+  window.renderChips = renderChips2;
+  window.setGroup = setGroup2;
+
+  // Rebind tab clicks to our setGroup
+  document.addEventListener('click', function(ev){
+    var t = ev.target.closest && ev.target.closest('#partTabs .gtab');
+    if (t){
+      setGroup2(t.getAttribute('data-g'));
+    }
+  });
+
+  // Re-render on owned input
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      setGroup2(on ? on.getAttribute('data-g') : 'wear');
+    }
+  });
+
+  // Run once after init
+  var __origInit2 = window.init;
+  window.init = function(){
+    if (typeof __origInit2 === 'function') __origInit2();
+    setGroup2('wear');
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ setGroup2('wear'); }, 60); });
+})();
+</script>
+
+
+<script>
+(function(){
+  var ORDER_WEAR = ["헤어 스타일","원피스","아우터","상의","하의","양말","신발"];
+  var ACC_SINGLES = ["모자","헤어 장식","얼굴 장식","귀걸이","목걸이","소지품","탑승물"];
+  var ACC_PALJJI = ["팔찌 - 손목장식","팔찌 - 장갑","팔찌 - 반지"];
+  var ACC_BACK   = ["등 장식 - 날개","등 장식 - 꼬리","등 장식 - 등 장식"];
+  var ACC_SPEC   = ["특수 아이템 - 발찌","특수 아이템 - 크로스백","특수 아이템 - 블로팅","특수 아이템 - 타투"];
+  var ORDER_MAKEUP = ["아이브로우","컬러 렌즈","아이라이너","아이섀도우","립 메이크업","속눈썹","블러셔","페이스 타투"];
+
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'').split(/[\n\\r;,]+|\\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+  function getStats(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i];
+      var p = (it && it.part) || '';
+      totals[p] = (totals[p]||0)+1;
+      var key = norm(it && it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var ownedPer = Object.create(null);
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    for (var j=0;j<names.length;j++){
+      var it2 = byName[norm(names[j])];
+      if (!it2) continue;
+      var pp = it2.part || '';
+      ownedPer[pp] = (ownedPer[pp]||0)+1;
+    }
+    return {totals: totals, ownedPer: ownedPer};
+  }
+  function shortLabel(full){
+    var prefixes = ["팔찌 - ", "등 장식 - ", "특수 아이템 - "];
+    for (var i=0;i<prefixes.length;i++){
+      if (full.indexOf(prefixes[i]) === 0) return full.slice(prefixes[i].length);
+    }
+    return full;
+  }
+  function chipHtml(label, owned, total, partValue){
+    var pv = partValue || '';
+    return '<span class="chip" data-part="'+ pv.replace(/"/g,'&quot;') +'">'
+         +   '<span class="k">'+ label +'</span>'
+         +   '<span class="v">'+ owned +'/'+ total +'</span>'
+         + '</span>';
+  }
+  function renderChips2(groupKey){
+    var row = document.getElementById('partChips'); if (!row) return;
+    var S = getStats();
+    var html = [];
+    if (groupKey === 'wear'){
+      ORDER_WEAR.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+      });
+    } else if (groupKey === 'acc'){
+      // Singles
+      ACC_SINGLES.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+      });
+      // Detailed sub-items with short labels (but data-part stays full for filter)
+      var all = ACC_PALJJI.concat(ACC_BACK).concat(ACC_SPEC);
+      all.forEach(function(full){
+        var lbl = shortLabel(full);
+        html.push(chipHtml(lbl, S.ownedPer[full]||0, S.totals[full]||0, full));
+      });
+    } else if (groupKey === 'makeup'){
+      ORDER_MAKEUP.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p]||0, S.totals[p]||0, p));
+      });
+    }
+    row.innerHTML = html.join('');
+  }
+  function setGroup2(g){
+    var tabs = document.querySelectorAll('#partTabs .gtab');
+    tabs.forEach(function(b){ b.classList.toggle('is-on', b.getAttribute('data-g')===g); });
+    renderChips2(g);
+  }
+  // Override previous globals
+  window.renderChips = renderChips2;
+  window.setGroup = setGroup2;
+
+  // Tab click
+  document.addEventListener('click', function(ev){
+    var t = ev.target.closest && ev.target.closest('#partTabs .gtab');
+    if (t) setGroup2(t.getAttribute('data-g'));
+    var chip = ev.target.closest && ev.target.closest('#partChips .chip');
+    if (chip){
+      var part = chip.getAttribute('data-part') || '';
+      if (!part) return;
+      var sel = document.getElementById('partFilter');
+      if (sel){
+        // match by value (full part); fallback to text
+        var found = false;
+        for (var i=0;i<sel.options.length;i++){
+          var opt = sel.options[i];
+          if (opt.value === part || opt.text.trim() === part){
+            sel.selectedIndex = i; found = true; break;
+          }
+        }
+        if (!found) sel.value = '';
+        sel.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+    }
+  });
+
+  // Owned input change -> refresh
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      setGroup2(on ? on.getAttribute('data-g') : 'wear');
+    }
+  });
+
+  // After init
+  var __origInit2 = window.init;
+  window.init = function(){
+    if (typeof __origInit2 === 'function') __origInit2();
+    setGroup2('wear');
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ setGroup2('wear'); }, 60); });
+})();
+</script>
+
+
+<script>
+// ---- Robust owned-name -> item.part matching + chip counts refresh ----
+(function(){
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    // 줄바꿈 / 쉼표 / 세미콜론 / 2칸 이상의 공백 구분
+    return String(text||'')
+      .split(/[\n\r;,]+|\s{2,}/g)
+      .map(function(s){ return s.trim(); })
+      .filter(Boolean);
+  }
+
+  // Map owned names (입력란) -> item.part 카운트
+  function getStatsOwnedAware(){
+    var items = (window.items || window.ITEMS || []);
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i]; if (!it) continue;
+      var p = it.part || '';
+      totals[p] = (totals[p]||0) + 1;
+      var key = norm(it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var ownedPer = Object.create(null);
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    for (var j=0;j<names.length;j++){
+      var it2 = byName[norm(names[j])];
+      if (!it2) continue; // 입력한 이름이 데이터에 없으면 무시
+      var pp = it2.part || '';
+      ownedPer[pp] = (ownedPer[pp]||0) + 1;
+    }
+    return { totals: totals, ownedPer: ownedPer };
+  }
+
+  // Helper: prefix 제거한 짧은 라벨
+  function shortLabel(full){
+    var prefixes = ["팔찌 - ", "등 장식 - ", "특수 아이템 - "];
+    for (var i=0;i<prefixes.length;i++){
+      if (full.indexOf(prefixes[i]) === 0) return full.slice(prefixes[i].length);
+    }
+    return full;
+  }
+
+  // Accessory lists
+  var ORDER_WEAR   = ["헤어 스타일","원피스","아우터","상의","하의","양말","신발"];
+  var ACC_SINGLES  = ["모자","헤어 장식","얼굴 장식","귀걸이","목걸이","소지품","탑승물"];
+  var ACC_PALJJI   = ["팔찌 - 손목장식","팔찌 - 장갑","팔찌 - 반지"];
+  var ACC_BACK     = ["등 장식 - 날개","등 장식 - 꼬리","등 장식 - 등 장식"];
+  var ACC_SPEC     = ["특수 아이템 - 발찌","특수 아이템 - 크로스백","특수 아이템 - 블로팅","특수 아이템 - 타투"];
+  var ORDER_MAKEUP = ["아이브로우","컬러 렌즈","아이라이너","아이섀도우","립 메이크업","속눈썹","블러셔","페이스 타투"];
+
+  function chipHtml(label, owned, total, partValue){
+    var pv = partValue || '';
+    return '<span class="chip" data-part="'+ pv.replace(/"/g,'&quot;') +'">'
+         +   '<span class="k">'+ label +'</span>'
+         +   '<span class="v">'+ (owned||0) +'/'+ (total||0) +'</span>'
+         + '</span>';
+  }
+
+  function renderChips_fixed(groupKey){
+    var row = document.getElementById('partChips'); if (!row) return;
+    var S = getStatsOwnedAware();
+    var html = [];
+    if (groupKey === 'wear'){
+      ORDER_WEAR.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p], S.totals[p], p));
+      });
+    } else if (groupKey === 'acc'){
+      // 개별 액세서리 (그룹 접두사 없는 항목)
+      ACC_SINGLES.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p], S.totals[p], p));
+      });
+      // 소그룹 세부 항목들 - 라벨은 짧게, 값은 풀네임
+      ACC_PALJJI.concat(ACC_BACK).concat(ACC_SPEC).forEach(function(full){
+        html.push(chipHtml(shortLabel(full), S.ownedPer[full], S.totals[full], full));
+      });
+    } else if (groupKey === 'makeup'){
+      ORDER_MAKEUP.forEach(function(p){
+        html.push(chipHtml(p, S.ownedPer[p], S.totals[p], p));
+      });
+    }
+    row.innerHTML = html.join('');
+  }
+
+  function setGroup_fixed(g){
+    var tabs = document.querySelectorAll('#partTabs .gtab');
+    tabs.forEach(function(b){ b.classList.toggle('is-on', b.getAttribute('data-g')===g); });
+    renderChips_fixed(g);
+  }
+
+  // Override any previous versions
+  window.renderChips = renderChips_fixed;
+  window.setGroup = setGroup_fixed;
+
+  // Click on chip -> filter by full part (data-part)
+  document.addEventListener('click', function(ev){
+    var chip = ev.target.closest && ev.target.closest('#partChips .chip');
+    if (!chip) return;
+    var part = chip.getAttribute('data-part') || '';
+    if (!part) return;
+    var sel = document.getElementById('partFilter');
+    if (sel){
+      var found = false;
+      for (var i=0;i<sel.options.length;i++){
+        var opt = sel.options[i];
+        if (String(opt.value).trim() === part){
+          sel.selectedIndex = i; found = true; break;
+        }
+      }
+      if (!found) sel.value = '';
+      sel.dispatchEvent(new Event('change', {bubbles:true}));
+    }
+  }, false);
+
+  // Re-render on owned input change
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      setGroup_fixed(on ? on.getAttribute('data-g') : 'wear');
+    }
+  });
+
+  // Hook into init to ensure counts after data load
+  var __orig = window.init;
+  window.init = function(){
+    if (typeof __orig === 'function') __orig();
+    setGroup_fixed('wear');
+  };
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ setGroup_fixed('wear'); }, 80); });
+})();
+</script>
+
+
+<script>
+// --- Robust data resolver: read items from main or from data iframes ---
+(function(){
+  function resolveItems(){
+    // 1) direct on window
+    if (Array.isArray(window.items))  return window.items;
+    if (Array.isArray(window.ITEMS))  return window.ITEMS;
+
+    // 2) known iframe by id/name
+    var f = document.getElementById('itemsFrame') || document.querySelector('iframe#itemsFrame, iframe[name="itemsFrame"]');
+    if (f && f.contentWindow){
+      try{
+        if (Array.isArray(f.contentWindow.items)) return f.contentWindow.items;
+        if (Array.isArray(f.contentWindow.ITEMS)) return f.contentWindow.ITEMS;
+      }catch(e){ /* cross-origin or not ready */ }
+    }
+
+    // 3) scan any iframe on the page
+    var ifs = document.querySelectorAll('iframe');
+    for (var i=0;i<ifs.length;i++){
+      var cw;
+      try{ cw = ifs[i].contentWindow; }catch(e){ continue; }
+      if (!cw) continue;
+      try{
+        if (Array.isArray(cw.items)) return cw.items;
+        if (Array.isArray(cw.ITEMS)) return cw.ITEMS;
+      }catch(e){ /* ignore */ }
+    }
+    return null;
+  }
+
+  // Expose for other scripts
+  window.__resolveItems = resolveItems;
+
+  // Patch getStatsOwnedAware (if defined) to use resolver; otherwise define a safe one.
+  function norm(s){ return String(s||'').toLowerCase().replace(/[\s\u00A0]+/g,' ').trim(); }
+  function parseOwned(text){
+    return String(text||'').split(/[\n\r;,]+|\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+
+  function getStatsOwnedAwarePatched(){
+    var items = resolveItems() || [];
+    var totals = Object.create(null);
+    var byName = Object.create(null);
+    for (var i=0;i<items.length;i++){
+      var it = items[i]; if (!it) continue;
+      var p = it.part || '';
+      totals[p] = (totals[p]||0) + 1;
+      var key = norm(it.name);
+      if (key && !(key in byName)) byName[key] = it;
+    }
+    var ownedPer = Object.create(null);
+    var input = document.getElementById('ownedInput');
+    var names = input ? Array.from(new Set(parseOwned(input.value))) : [];
+    for (var j=0;j<names.length;j++){
+      var it2 = byName[norm(names[j])];
+      if (!it2) continue;
+      var pp = it2.part || '';
+      ownedPer[pp] = (ownedPer[pp]||0) + 1;
+    }
+    return { totals: totals, ownedPer: ownedPer };
+  }
+
+  // If a previous function exists, overwrite safely
+  window.getStatsOwnedAware = getStatsOwnedAwarePatched;
+
+  // When items become available later, re-render chips & badges automatically
+  function refreshIfReady(){
+    var arr = resolveItems();
+    if (arr && arr.length){
+      // refresh chips
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      var g = on ? on.getAttribute('data-g') : 'wear';
+      if (typeof window.setGroup === 'function') window.setGroup(g);
+
+      // refresh owned badges if helpers exist
+      if (typeof window.updateOwnedBadges === 'function') window.updateOwnedBadges();
+      return true;
+    }
+    return false;
+  }
+
+  // Poll until items are ready (max ~10s)
+  var tries = 0;
+  var timer = setInterval(function(){
+    tries++;
+    if (refreshIfReady() || tries > 100){ clearInterval(timer); }
+  }, 100);
+
+  // Also listen for iframe load events
+  document.addEventListener('load', function(e){
+    if (e.target && e.target.tagName === 'IFRAME'){
+      setTimeout(refreshIfReady, 50);
+    }
+  }, true);
+})();
+</script>
+
+
+<style>
+.badge.owned{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;background:#4caf50;color:#fff;font-size:11px;}
+</style>
+<script>
+(function(){
+  function normName(s){
+    if (typeof window.normOwnedName === 'function') return window.normOwnedName(s);
+    return String(s||'').normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
+  }
+  function parseOwnedRaw(text){
+    return String(text||'').split(/[\n\r;,]+|\s{2,}/g).map(s=>s.trim()).filter(Boolean);
+  }
+  function computeOwnedSet(){
+    var ta = document.getElementById('ownedInput');
+    if (!ta) return null;
+    var names = Array.from(new Set(parseOwnedRaw(ta.value))).map(normName);
+    window.ownedNameSet = window.ownedNameSet || new Set();
+    // reset
+    window.ownedNameSet.clear();
+    names.forEach(n => window.ownedNameSet.add(n));
+    // expose for other code that closed over old reference
+    window.__ownedNamesArray = names;
+    return window.ownedNameSet;
+  }
+  function refreshAll(){
+    // refresh chips
+    var on = document.querySelector('#partTabs .gtab.is-on');
+    var g = on ? on.getAttribute('data-g') : 'wear';
+    if (typeof window.setGroup === 'function') window.setGroup(g);
+    // refresh table/list view if available
+    if (typeof window.renderTable === 'function') window.renderTable();
+    if (typeof window.render === 'function') window.render();
+    if (typeof window.updateOwnedBadges === 'function') window.updateOwnedBadges();
+  }
+  // Wire input live update
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      computeOwnedSet();
+      refreshAll();
+    }
+  });
+  // Buttons
+  var applyBtn = document.getElementById('applyOwned');
+  if (applyBtn){
+    applyBtn.addEventListener('click', function(){
+      computeOwnedSet();
+      refreshAll();
+    });
+  }
+  var clearBtn = document.getElementById('clearOwned');
+  if (clearBtn){
+    clearBtn.addEventListener('click', function(){
+      var ta = document.getElementById('ownedInput');
+      if (ta) ta.value = '';
+      computeOwnedSet();
+      refreshAll();
+    });
+  }
+  // Init
+  document.addEventListener('DOMContentLoaded', function(){
+    computeOwnedSet();
+    setTimeout(refreshAll, 60);
+  });
+})();
+</script>
+
+
+<script>
+// --- Auto save & load owned list to localStorage (silent) ---
+(function(){
+  var LS_KEY = 'nikki_owned_names_v2';
+
+  function safeGet(){
+    try { return localStorage.getItem(LS_KEY) || ''; } catch(e){ return ''; }
+  }
+  function safeSet(v){
+    try { localStorage.setItem(LS_KEY, String(v||'')); } catch(e){ /* ignore */ }
+  }
+  function refreshAll(){
+    if (typeof window.setGroup === 'function'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      var g = on ? on.getAttribute('data-g') : 'wear';
+      window.setGroup(g);
+    }
+    if (typeof window.renderTable === 'function') window.renderTable();
+    if (typeof window.render === 'function') window.render();
+    if (typeof window.updateOwnedBadges === 'function') window.updateOwnedBadges();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var ta = document.getElementById('ownedInput');
+    if (!ta) return;
+    var saved = safeGet();
+    if (saved && !ta.value){
+      ta.value = saved;
+      // trigger existing input handlers to recompute owned set
+      ta.dispatchEvent(new Event('input', {bubbles:true}));
+      setTimeout(refreshAll, 50);
+    }
+  });
+
+  var saveTimer = null;
+  document.addEventListener('input', function(ev){
+    if (!ev.target || ev.target.id !== 'ownedInput') return;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){ safeSet(ev.target.value); }, 150);
+  });
+})();
+</script>
+
+
+<script>
+// --- Internal persistent owned-set (independent from textarea) ---
+(function(){
+  var LS_SET = 'nikki_owned_set_v1';
+  var LS_DRAFT = 'nikki_owned_draft_v1';
+
+  function norm(s){
+    try { return String(s||'').normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase(); }
+    catch(e){ return String(s||'').toLowerCase().trim(); }
+  }
+  function parseList(text){
+    return String(text||'').split(/[\n\r;,]+|\s{2,}/g).map(function(s){return s.trim();}).filter(Boolean);
+  }
+  function safeGet(k, d){ try{ return localStorage.getItem(k); }catch(e){ return d; } }
+  function safeSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+
+  function refreshAll(){
+    if (typeof window.setGroup === 'function'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      var g = on ? on.getAttribute('data-g') : 'wear';
+      window.setGroup(g);
+    }
+    if (typeof window.renderTable === 'function') window.renderTable();
+    if (typeof window.render === 'function') window.render();
+    if (typeof window.updateOwnedBadges === 'function') window.updateOwnedBadges();
+  }
+
+  function loadOwnedSet(){
+    var saved = safeGet(LS_SET, '') || '';
+    var arr = saved ? saved.split('\n').map(function(s){return s.trim();}).filter(Boolean) : [];
+    var set = new Set(arr.map(norm));
+    // expose as canonical set used by filters/renderers
+    window.ownedNameSet = set;
+    window.__ownedNamesArray = Array.from(set);
+    return set;
+  }
+
+  function saveOwnedSetFromTextarea(){
+    var ta = document.getElementById('ownedInput');
+    if (!ta) return;
+    var names = parseList(ta.value);
+    var normed = Array.from(new Set(names.map(norm)));
+    safeSet(LS_SET, normed.join('\n'));
+    loadOwnedSet();
+    refreshAll();
+  }
+
+  // Override any earlier computeOwnedSet so typing doesn't clear the set
+  window.computeOwnedSet = function(commit){
+    if (commit) saveOwnedSetFromTextarea();
+    // else: ignore live typing
+  };
+
+  // Apply button commits textarea -> internal set
+  document.addEventListener('click', function(ev){
+    var t = ev.target && ev.target.closest && ev.target.closest('#applyOwned');
+    if (t){ saveOwnedSetFromTextarea(); }
+  }, true);
+
+  // Save draft only (doesn't affect owned set)
+  document.addEventListener('input', function(ev){
+    if (ev.target && ev.target.id === 'ownedInput'){
+      safeSet(LS_DRAFT, ev.target.value);
+      // DO NOT touch window.ownedNameSet here
+    }
+  });
+
+  // Initialize on load: load set from LS, but do NOT auto-fill textarea
+  document.addEventListener('DOMContentLoaded', function(){
+    loadOwnedSet();
+    setTimeout(refreshAll, 80);
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function normNewlines(s){ return String(s||'').replace(/\r\n/g,'\n').replace(/\r/g,'\n'); }
+  function getOwnedText(){
+    var ta = document.getElementById('ownedInput');
+    var text = ta ? ta.value : '';
+    if (text && text.trim()) return normNewlines(text.trim());
+    var set = (window.ownedNameSet instanceof Set) ? Array.from(window.ownedNameSet) : [];
+    return set.join('\n');
+  }
+  function downloadTxt(filename, text){
+    var blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+  function refreshAll(){
+    // chips/tabs
+    if (typeof window.setGroup === 'function'){
+      var on = document.querySelector('#partTabs .gtab.is-on');
+      var g = on ? on.getAttribute('data-g') : 'wear';
+      window.setGroup(g);
+    }
+    // lists/tables if present
+    if (typeof window.renderTable === 'function') window.renderTable();
+    if (typeof window.render === 'function') window.render();
+    if (typeof window.updateOwnedBadges === 'function') window.updateOwnedBadges();
+  }
+  function applyFromTextarea(){
+    var ta = document.getElementById('ownedInput');
+    if (!ta) return;
+    // trigger any existing listeners that build owned set
+    ta.dispatchEvent(new Event('input', {bubbles:true}));
+    if (typeof window.computeOwnedSet === 'function') window.computeOwnedSet(true);
+    refreshAll();
+  }
+  function handleFile(file){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var text = normNewlines(ev.target.result);
+      var ta = document.getElementById('ownedInput');
+      if (ta){ ta.value = text; }
+      // 바로 적용
+      applyFromTextarea();
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  document.addEventListener('click', function(ev){
+    var id = ev.target && ev.target.id;
+    if (id === 'exportOwned'){
+      var text = getOwnedText();
+      if (!text){ alert('보유 의상 목록이 비어 있습니다.'); return; }
+      downloadTxt('owned_items.txt', text);
+    } else if (id === 'importOwned'){
+      var inp = document.getElementById('importOwnedFile');
+      if (inp) inp.click();
+    }
+  });
+  document.addEventListener('change', function(ev){
+    if (ev.target && ev.target.id === 'importOwnedFile' && ev.target.files.length){
+      handleFile(ev.target.files[0]);
+      ev.target.value = '';
+    }
+  });
+})();
+</script>
+
+
+<footer id="metaFooter" style="margin:24px 0 0; padding:12px; text-align:center; color:#666; font-size:12px; ">
+  제작자 : 윤드 · 
+</footer>
+
+
+<script>
+// --- Stage-defined extra attributes (no UI) ---
+// Expect each stage object can define:
+//   extras: ["활발","심플","청량"]         // up to any number
+//   extras_pct: 5                         // percent as number (default 5)
+(function(){
+  window.__getStageExtraAttrs = function(stage){
+    if (!stage) return [];
+    if (Array.isArray(stage.extras)) return stage.extras;
+    if (Array.isArray(stage.extraAttrs)) return stage.extraAttrs;
+    return [];
+  };
+  window.__getStageExtraPct = function(stage){
+    if (!stage) return 0.05;
+    var p = (typeof stage.extras_pct === 'number') ? stage.extras_pct :
+            (typeof stage.extras_pct === 'string' ? (+stage.extras_pct) : NaN);
+    if (!isNaN(p) && p > 0) return p / 100;
+    return 0.05; // default 5%
+  };
+})();
+</script>
+
+</body>
+</html>
+<script>(function(){if(!window.__bootDone){window.__bootDone=false;}function canInit(){try{return Array.isArray(window.items)&&window.items.length>0&&Array.isArray(window.stages)&&window.stages.length>0;}catch(e){return false;}}function tryInitNow(){if(window.__bootDone)return;if(canInit()){window.__bootDone=true;if(typeof init==='function')init();return true;}return false;}document.addEventListener('DOMContentLoaded',function(){if(tryInitNow())return;let n=0;const t=setInterval(function(){n++;if(tryInitNow()||n>30){clearInterval(t);}},200);});window.addEventListener('load',tryInitNow);window.addEventListener('message',function(){setTimeout(tryInitNow,0);},true);})();</script>
+
+<script>(function(){function ex(h){const m=h.match(/var\s+data\s*=\s*(\[[\s\S]*?\]);/);return m?m[1]:null;}async function fetchArr(u){try{const r=await fetch(u,{credentials:'same-origin'});if(!r.ok)return null;const h=await r.text();const t=ex(h);if(!t)return null;const a=Function('\"use strict\";return ('+t+')')();return Array.isArray(a)?a:null;}catch(_){return null;}}async function go(){if(!(window.items&&window.items.length)){const a=await fetchArr('items_frame_v2.html');if(a){window.items=a;items=window.items;if(window.got)window.got.items=true;}}if(!(window.stages&&window.stages.length)){const a2=await fetchArr('stages_frame_v2.html');if(a2){window.stages=a2;stages=window.stages;if(window.got)window.got.stages=true;}}if(typeof maybeInit==='function')maybeInit();}document.addEventListener('DOMContentLoaded',function(){setTimeout(go,800);});})();</script>
+
+<script>// Iframe onload fallback
+(function(){function ex(h){const m=h&&h.match(/var\s+data\s*=\s*(\[[\s\S]*?\]);/);return m?m[1]:null;}function parseIF(f){try{const d=f&&f.contentDocument;const h=d&&d.documentElement&&d.documentElement.innerHTML;const t=ex(h||'');if(!t)return null;const a=Function('\"use strict\";return ('+t+')')();return Array.isArray(a)?a:null;}catch(_){return null;}}function go(){var i=document.querySelector('iframe[src="items_frame_v2.html"]');var s2=document.querySelector('iframe[src="stages_frame_v2.html"]');if(i&&!(window.items&&window.items.length)){var a=parseIF(i);if(a){window.items=a;items=window.items;if(window.got)window.got.items=true;}}if(s2&&!(window.stages&&window.stages.length)){var a2=parseIF(s2);if(a2){window.stages=a2;stages=window.stages;if(window.got)window.got.stages=true;}}if(typeof maybeInit==='function')maybeInit();}window.addEventListener('load',function(){setTimeout(go,400);});document.addEventListener('DOMContentLoaded',function(){var i=document.querySelector('iframe[src="items_frame_v2.html"]');var s2=document.querySelector('iframe[src="stages_frame_v2.html"]');function onIF(){setTimeout(go,50);}if(i)i.addEventListener('load',onIF);if(s2)s2.addEventListener('load',onIF);});})();</script>
