@@ -205,6 +205,26 @@ tbody tr:hover{background:#fafcff}
 </style>
 
 <script>
+/* === Runtime guard for required_parts keys (added) === */
+(function(){
+  if (!window._normalizeStageReq) {
+    window._normalizeStageReq = function(stage){
+      try{
+        if(!stage || typeof stage!=='object') return stage;
+        var rp = stage.required_parts || {};
+        // Map legacy key "헤어" -> "헤어 스타일"
+        if (rp["헤어"] && !rp["헤어 스타일"]) rp["헤어 스타일"] = rp["헤어"];
+        // Ensure arrays for common parts
+        var slots = ["헤어 스타일","모자","원피스","아우터","상의","하의","양말","신발"];
+        for(var i=0;i<slots.length;i++){ var k=slots[i]; if(!Array.isArray(rp[k])) rp[k]=[]; }
+        stage.required_parts = rp;
+      }catch(e){/*noop*/}
+      return stage;
+    };
+  }
+})();
+/* === End runtime guard === */
+
 (function(){
   function showLoading(on){
     var el = document.getElementById('loading');
@@ -214,10 +234,80 @@ tbody tr:hover{background:#fafcff}
   // expose globally
   window._loading = { show: showLoading };
 })();
+
+/* === Additional hard guards (v2) === */
+(function(){
+  // Safe arrays
+  window._asArr = function(x){ return Array.isArray(x) ? x : (x==null ? [] : [x]); };
+  // Normalize stage.required_parts every time we read it
+  const _origGetRequiredNameSet = window.getRequiredNameSet;
+  window.getRequiredNameSet = function(){
+    try{
+      const sel = document.getElementById('stageSelect');
+      const id = sel && sel.value;
+      const st = (window.stages||[]).find(x=> String(x.stage_id)===String(id));
+      window._normalizeStageReq && window._normalizeStageReq(st);
+      const rp = st && st.required_parts || {};
+      const names = new Set();
+      Object.keys(rp||{}).forEach(k=>{
+        const v = rp[k];
+        if(Array.isArray(v)) v.forEach(n=> names.add((window.ownNorm||String)(n)));
+        else if(v && typeof v==='object') Object.values(v).forEach(n=> names.add((window.ownNorm||String)(n)));
+        else if(v!=null) names.add((window.ownNorm||String)(v));
+      });
+      return names;
+    }catch(e){ return new Set(); }
+  };
+
+  // Harden getFilteredList against missing items/partFilter
+  const _origGetFilteredList = window.getFilteredList;
+  if(typeof _origGetFilteredList === 'function'){
+    window.getFilteredList = function(stage){
+      try{
+        const partEl = document.getElementById('partFilter');
+        const part = partEl ? partEl.value : '';
+        const selectedTags=(window.getSelectedTags?window.getSelectedTags():[]);
+        const mode=(document.querySelector('input[name="tagMode"]:checked')||{}).value||'AND';
+        const src = Array.isArray(window.items)? window.items : [];
+        let list = src.map(it=> ({...it, part:it.part, score:(window.scoreItemForStage?window.scoreItemForStage(it,stage):0)}));
+        if(part) list=list.filter(it=> it.part===part);
+        if(window.tagsInclude && window.parseTags) list=list.filter(it=> window.tagsInclude(window.parseTags(it.tags), selectedTags, mode));
+        return list.map(it=> ({...it, _owned: (window.ownedNameSet && window.normOwnedName)? window.ownedNameSet.has(window.normOwnedName(it.name)) : false}));
+      }catch(e){ return []; }
+    };
+  }
+
+  // Wrap renderAll to never throw
+  if(typeof window.renderAll==='function'){
+    const _orig = window.renderAll;
+    window.renderAll = function(){ try{ _orig(); }catch(e){} };
+  }
+})();
+/* === End hard guards (v2) === */
+
 </script>
+
+
+<style>
+.req-badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:6px;border:1px solid #ff9b9b;background:#ffecec;color:#d40000;font-weight:600;font-size:12px}
+.req-panel{margin:10px 20px;padding:10px;border:1px solid #f3d2d2;background:#fff6f6;border-radius:10px}
+.req-panel h3{margin:0 0 8px 0;font-size:14px;color:#b10000}
+.req-table{width:100%;border-collapse:collapse;font-size:13px}
+.req-table th,.req-table td{border:1px solid #f1c9c9;padding:6px 8px;text-align:left}
+.req-table th{background:#ffe3e3}
+</style>
 
 </head>
 <body>
+<div id="reqPanel" class="req-panel" style="display:none"></div>
+
+<script>
+// Kill MutationObserver globally (surgical, to stop any render loops)
+try {
+  window.MutationObserver = function(){ return { observe(){}, disconnect(){}, takeRecords(){ return [] } }; };
+} catch(e){}
+</script>
+
 <!-- INLINE_DATA_REMOVED -->
 <script>
 // Global aliases and safety
@@ -944,7 +1034,7 @@ const normName = (s)=> String(s||'').normalize('NFKC').toLowerCase().replace(/\s
     fixImages();
     dedupDOM();
   });
-  const mo = new MutationObserver(()=>{ fixImages(); dedupDOM(); });
+  const mo = /* MO-off */ (null && new MutationObserver)(()=>{ fixImages(); dedupDOM(); });
   mo.observe(document.documentElement, {childList:true, subtree:true});
 })();
 </script>
@@ -2508,7 +2598,7 @@ function toThumb(u){
       if(!tips) return;
       const req = tips.querySelector('.reqlist');
       if(req && tips.firstChild !== req){
-        tips.insertBefore(req, tips.firstChild);
+        tips/* disabled tips reorder */ void 0;
       }
     }catch(e){}
   }
@@ -2565,7 +2655,7 @@ function toThumb(u){
     // Observe tips only (non-intrusive)
     const tips = document.getElementById('tips');
     if(tips){
-      const mo = new MutationObserver(postRender);
+      const mo = /* MO-off */ (null && new MutationObserver)(postRender);
       mo.observe(tips, {childList:true, subtree:true});
 document.addEventListener('DOMContentLoaded', function(){
     // Guard: both iframes should exist
@@ -2576,7 +2666,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // Observe tips only (non-intrusive)
     const tips = document.getElementById('tips');
     if(tips){
-      const mo = new MutationObserver(postRender);
+      const mo = /* MO-off */ (null && new MutationObserver)(postRender);
       mo.observe(tips, {childList:true, subtree:true});
     }
   });
@@ -2627,7 +2717,7 @@ document.addEventListener('DOMContentLoaded', function(){
     // Ensure it's at the top even if render re-writes tips later
     const req = tips.querySelector('.reqlist');
     if(req && tips.firstChild !== req){
-      tips.insertBefore(req, tips.firstChild);
+      tips/* disabled tips reorder */ void 0;
     }
   }
   function addBadgesToCards(stage, reqMap){
@@ -2682,14 +2772,14 @@ document.addEventListener('DOMContentLoaded', function(){
     // Observe list & tips for re-renders
     const list = document.getElementById('list');
     if(list){
-      new MutationObserver(()=> runRequiredUI()).observe(list, {childList:true, subtree:true});
+      /* MO-off */ (null && new MutationObserver)(()=> runRequiredUI()).observe(list, {childList:true, subtree:true});
     }
     const tips = document.getElementById('tips');
     if(tips){
-      new MutationObserver(()=>{
+      /* MO-off */ (null && new MutationObserver)(()=>{
         // keep required block FIRST
         const req = tips.querySelector('.reqlist');
-        if(req && tips.firstChild !== req) tips.insertBefore(req, tips.firstChild);
+        if(req && tips.firstChild !== req) tips/* disabled tips reorder */ void 0;
       }).observe(tips, {childList:true, subtree:true});
     }
   });
@@ -2815,14 +2905,14 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     const list = document.getElementById('list');
     if(list){
-      new MutationObserver(()=> run()).observe(list, {childList:true, subtree:true});
+      /* MO-off */ (null && new MutationObserver)(()=> run()).observe(list, {childList:true, subtree:true});
     }
     const tips = document.getElementById('tips');
     if(tips){
-      new MutationObserver(()=>{
+      /* MO-off */ (null && new MutationObserver)(()=>{
         // keep reqlist first
         const req = tips.querySelector('.reqlist');
-        if(req && tips.firstChild !== req) tips.insertBefore(req, tips.firstChild);
+        if(req && tips.firstChild !== req) tips/* disabled tips reorder */ void 0;
       }).observe(tips, {childList:true, subtree:true});
     }
   });
@@ -2889,7 +2979,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const list = document.getElementById('list');
     if(list){
-      new MutationObserver(()=> reorderRequiredFirst()).observe(list, {childList:true, subtree:false});
+      /* MO-off */ (null && new MutationObserver)(()=> reorderRequiredFirst()).observe(list, {childList:true, subtree:false});
     }
   });
 })();
@@ -2936,6 +3026,190 @@ document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loadin
 <!-- data iframes (hidden) -->
 <iframe id="itemsFrame" src="./items_frame_v2.html" style="display:none;width:0;height:0;border:0;"></iframe>
 <iframe id="stagesFrame" src="./stages_frame_v2.html" style="display:none;width:0;height:0;border:0;"></iframe>
+
+
+<script>
+(function(){
+  // Safe override of render() that avoids DOM reorders and freezes
+  const by = (k)=> (a,b)=> String(a[k]||'').localeCompare(String(b[k]||''));
+  const ownNorm = window.normOwnedName || (s=> String(s||'').toLowerCase().replace(/\s+/g,''));
+
+  function getRequiredNameSetSafe(){
+    try{
+      const sel = document.getElementById('stageSelect');
+      const id = sel && sel.value;
+      const st = (window.stages||[]).find(x=> String(x.stage_id)===String(id));
+      const rp = st && st.required_parts;
+      const names = new Set();
+      if(rp && typeof rp==='object'){
+        Object.values(rp).forEach(v=>{
+          if(Array.isArray(v)) v.forEach(n=> names.add(ownNorm(String(n))));
+          else if(v && typeof v==='object') Object.values(v).forEach(n=> names.add(ownNorm(String(n))));
+          else if(v!=null) names.add(ownNorm(String(v)));
+        });
+      }
+      return names;
+    }catch(e){ return new Set(); }
+  }
+
+  function scoreItemForStageSafe(item, stage){
+    try{
+      return (typeof window.scoreItemForStage==='function') ? window.scoreItemForStage(item, stage) : 0;
+    }catch(e){ return 0; }
+  }
+
+  window.render = function(){
+    try{
+      const stageId=document.getElementById('stageSelect').value || (stages[0] && stages[0].stage_id);
+      const sortBy=document.getElementById('sortBy').value;
+      const ownedOnly=document.getElementById('ownedOnly').checked;
+      const stage=(window.stages||[]).find(s=> String(s.stage_id)===String(stageId)) || (window.stages||[])[0];
+
+      let list=(Array.isArray(window.items)?window.items:[]).map(it=> ({...it, part:it.part, score:scoreItemForStageSafe(it, stage)}));
+      const part=document.getElementById('partFilter')?.value || '';
+      if(part) list=list.filter(it=> it.part===part);
+      if(ownedOnly && window.ownedNameSet && window.normOwnedName) list=list.filter(it=> window.ownedNameSet.has(window.normOwnedName(it.name)));
+
+      // required-first sorting (data-level)
+      const __reqSet = getRequiredNameSetSafe();
+      list = list.map(it=> ({...it, __req: __reqSet.has(ownNorm(it.name||''))}));
+      if(sortBy==='score') list.sort((a,b)=> (b.__req - a.__req) || (b.score-a.score));
+      else list.sort((a,b)=> (b.__req - a.__req) || by('name')(a,b));
+
+      const listEl=document.getElementById('list'); const empty=document.getElementById('emptyState');
+      if(list.length===0){ listEl.style.display='none'; empty.style.display='block'; }
+      else { listEl.style.display='grid'; empty.style.display='none'; }
+
+      listEl.innerHTML = list.map(it=>{
+        const stars=Math.max(0, Math.min(6, Number(it.stars||0)));
+        const tgs=(window.parseTags?window.parseTags(it.tags):[]);
+        const img = it.img ? `<img class="thumb" src="${it.img}" alt="${it.name}">` : '';
+        return `<div class="card">
+          <div class="row thumbrow">${img}<h3 style="margin:0;flex:1;display:flex;justify-content:space-between;align-items:center">
+            <span>${it.name||'-'}</span>
+            <button class="copy-btn" onclick="copyText('${(it.name||'').replace(/'/g, "\'")}')">이름 복사</button>
+          </h3></div>
+          <div class="badges"><span class="badge">${it.part||'-'}</span><span class="badge">${stars}★</span>${it._owned?'<span class="badge owned">보유</span>':''}</div>
+          <div>${tgs.map(x=>`<span class='pill'>${x}</span>`).join('')} </div>
+          <div class="score">점수: ${Number(it.score).toFixed(2)}</div>
+        </div>`;
+      }).join('');
+    }catch(e){ /* swallow */ }
+  };
+
+  // After override: stop invoking DOM-reorder helpers if present
+  window.reorderRequiredFirst = function(){};
+  window.moveRequiredFirst = function(){};
+
+  // Kick initial render once items become available
+  (function waitItems(){
+    if(Array.isArray(window.items) && window.items.length){
+      try{ window.renderAll ? window.renderAll() : window.render(); }catch(e){}
+    }else{
+      setTimeout(waitItems, 100);
+    }
+  })();
+})();
+</script>
+
+
+<script>
+(function(){
+  const ownNorm = window.normOwnedName || (s=> String(s||'').toLowerCase().replace(/\s+/g,''));
+  const by = (k)=> (a,b)=> String(a[k]||'').localeCompare(String(b[k]||''));
+
+  function getStageAndReq(){
+    const sel = document.getElementById('stageSelect');
+    const id = sel && sel.value;
+    const st = (window.stages||[]).find(x=> String(x.stage_id)===String(id)) || (window.stages||[])[0] || null;
+    const rp = st && st.required_parts || {};
+    const reqNames = new Set();
+    const reqByPart = {};
+    if(rp && typeof rp==='object'){
+      Object.keys(rp).forEach(part=>{
+        const arr = Array.isArray(rp[part]) ? rp[part] : [];
+        if(arr.length){
+          reqByPart[part] = arr.slice();
+          arr.forEach(n=> reqNames.add(ownNorm(String(n))));
+        }
+      });
+    }
+    return {stage:st, reqSet:reqNames, reqByPart};
+  }
+
+  function renderReqPanel(reqByPart){
+    const panel = document.getElementById('reqPanel');
+    if(!panel) return;
+    const parts = Object.keys(reqByPart);
+    if(!parts.length){ panel.style.display='none'; panel.innerHTML=''; return; }
+    const rows = parts.map(p=>{
+      const names = reqByPart[p].map(n=> `<code>${n}</code>`).join(', ');
+      return `<tr><th>${p}</th><td>${names}</td></tr>`;
+    }).join('');
+    panel.innerHTML = `<h3>필수아이템</h3><table class="req-table"><tbody>${rows}</tbody></table>`;
+    panel.style.display='block';
+  }
+
+  // Preserve original score function if exists
+  const scoreSafe = (item, stage)=>{
+    try{ return (typeof window.scoreItemForStage==='function') ? window.scoreItemForStage(item, stage) : 0; }
+    catch(e){ return 0; }
+  };
+
+  // Override render ONLY (renderAll는 기존 로직을 쓰되 render를 호출하도록 둠)
+  window.render = function(){
+    try{
+      const {stage, reqSet, reqByPart} = getStageAndReq();
+      renderReqPanel(reqByPart);
+
+      const part=document.getElementById('partFilter')?.value || '';
+      const sortBy=document.getElementById('sortBy')?.value || 'score';
+      const ownedOnly=document.getElementById('ownedOnly')?.checked || false;
+
+      let src = Array.isArray(window.items)? window.items : [];
+      let list = src.map(it=> ({...it, score:scoreSafe(it, stage)}));
+      if(part) list = list.filter(it=> it.part===part);
+      if(ownedOnly && window.ownedNameSet && window.normOwnedName){
+        list = list.filter(it=> window.ownedNameSet.has(window.normOwnedName(it.name)));
+      }
+
+      list = list.map(it=> ({...it, __req: reqSet.has(ownNorm(it.name||''))}));
+      if(sortBy==='score') list.sort((a,b)=> (b.__req - a.__req) || (b.score-a.score));
+      else list.sort((a,b)=> (b.__req - a.__req) || by('name')(a,b));
+
+      const listEl=document.getElementById('list'); const empty=document.getElementById('emptyState');
+      if(!listEl) return;
+      if(list.length===0){ listEl.style.display='none'; if(empty) empty.style.display='block'; }
+      else { listEl.style.display='grid'; if(empty) empty.style.display='none'; }
+
+      listEl.innerHTML = list.map(it=>{
+        const stars = Math.max(0, Math.min(6, Number(it.stars||0)));
+        const tgs = (window.parseTags?window.parseTags(it.tags):[]);
+        const img = it.img ? `<img class="thumb" src="${it.img}" alt="${it.name}">` : '';
+        const reqBadge = it.__req ? `<span class="req-badge">필수</span>` : '';
+        return `<div class="card">
+          <div class="row thumbrow">${img}<h3 style="margin:0;flex:1;display:flex;justify-content:space-between;align-items:center">
+            <span>${it.name||'-'} ${reqBadge}</span>
+            <button class="copy-btn" onclick="copyText('${(it.name||'').replace(/'/g, "\\'")}')">이름 복사</button>
+          </h3></div>
+          <div class="badges"><span class="badge">${it.part||'-'}</span><span class="badge">${stars}★</span>${it._owned?'<span class="badge owned">보유</span>':''}</div>
+          <div>${tgs.map(x=>`<span class='pill'>${x}</span>`).join('')} </div>
+          <div class="score">점수: ${Number(it.score).toFixed(2)}</div>
+        </div>`;
+      }).join('');
+    }catch(e){ /* swallow */ }
+  };
+
+  // Ensure first render when items become available
+  (function waitItems(){
+    if(Array.isArray(window.items) && window.items.length){
+      try{ window.renderAll ? window.renderAll() : window.render(); }catch(e){}
+    }else{
+      setTimeout(waitItems, 100);
+    }
+  })();
+})();
+</script>
 
 </body>
 </html>
