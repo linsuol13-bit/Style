@@ -3,6 +3,21 @@
 
 <html lang="ko">
 <head>
+
+<script>
+// Force tags to come ONLY from explicit item.tags, never auto-generated.
+(function(){
+  function ensureArray(x){ if(!x) return []; if(Array.isArray(x)) return x; return String(x).split(/[,\s#]+/).filter(Boolean); }
+  window.parseTags = window.parseTags || function(str){ return ensureArray(str); };
+  window.getItemTags = function(it){
+    try { return ensureArray((it && it.tags) ? it.tags : ''); }
+    catch(e){ return []; }
+  };
+  // Back-compat: provide tgs helper if templates expect it
+  window.__tagsFromItem = function(it){ return window.getItemTags(it); };
+})();
+</script>
+
 <meta charset="utf-8"/><meta content="width=device-width, initial-scale=1" name="viewport"/>
 <title>스타일라잇 점수계산</title>
 <style>
@@ -25,6 +40,9 @@ button{cursor:pointer} button:hover{background:#fafafa}
 .card h3{margin:0 0 4px 0;font-size:16px;display:flex;justify-content:space-between;align-items:center}
 .badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
 .badge{font-size:11px;border:1px solid #eee;padding:4px 8px;border-radius:999px;background:#fafafa}
+
+.badge.tag{background:#fff0fb;border-color:#ffd1f3}
+.badges.tags{margin-top:2px}
 .badge.owned{background:#eaffea;border-color:#cdeccc}
 .score{font-weight:700}
 .small{color:#666;font-size:12px}
@@ -606,7 +624,7 @@ function render(){
 
   listEl.innerHTML = list.map(it=>{
     const stars=Math.max(0, Math.min(6, Number(it.stars||0)));
-    const tgs=parseTags(it.tags);
+    const tgs = parseTags((it && it.tags) ? it.tags : '');
     const img = it.img ? `<img class="thumb" src="${it.img}" alt="${it.name}">` : '';
     return `<div class="card">
       <div class="row thumbrow">${img}<h3 style="margin:0;flex:1;display:flex;justify-content:space-between;align-items:center">
@@ -614,7 +632,7 @@ function render(){
         <button class="copy-btn" onclick="copyText('${(it.name||'').replace(/'/g, "\'")}')">이름 복사</button>
       </h3></div>
       <div class="badges"><span class="badge">${it.part||'-'}</span><span class="badge">${stars}★</span>${it._owned?'<span class="badge owned">보유</span>':''}</div>
-      <div>${tgs.map(x=>`<span class='pill'>${x}</span>`).join('')} </div>
+      <div class="badges tags">${tgs.map(x=>`<span class='badge tag'>#${x}</span>`).join('')}</div>
       <div class="score">점수: ${Number(it.score).toFixed(2)}</div>
       <div class="small">${labelGrade(it)}</div>
     </div>`;
@@ -1039,246 +1057,11 @@ const normName = (s)=> String(s||'').normalize('NFKC').toLowerCase().replace(/\s
 })();
 </script>
 <script>
-// === Bonus & Tag scoring patch (append-only, safe redefinition) ===
-(function(){
-  // Per-stage tag list for 10% tag bonus (multiplicative)
-  const STAGE_TAGS = {
-    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
-    "[메인] 1-6 의혹 속으로": ["운동룩"],
-    "[메인] 1-7 '흑역사'": ["드레스"],
-    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
-    "[메인] 1-9 어둠 속에서": ["젠더리스"]
-  };
-  const TAG_BONUS_PCT = 10; // 사용자가 지정한 태그 가중치 10%
 
-  const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
-  const gradeScore = (window.gradeScore) || {"SSS":3200,"SS":2612.7,"S":2089.35,"A":1690.65,"B":1309.8,"C":817.5,"-":0,"":0,"null":0};
-  const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
-  const STAR_MULT = (window.STAR_MULT) || [1.00,1.00,1.03,1.06,1.09,1.12,1.15];
-  const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
-  const PART_WEIGHTS = (window.PART_WEIGHTS) || {"헤어 스타일":0.5,"원피스":2,"아우터":0.2,"상의":1,"하의":1,"양말":0.3,"신발":0.4,"장식":0.2,"뷰티":0.1};
-
-  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
-
-  function tagsMatch(item, stageId){
-    const stageTags = STAGE_TAGS[stageId] || [];
-    if(stageTags.length===0) return false;
-    const itemTags = new Set(parseTags(item.tags));
-    return stageTags.some(t => itemTags.has(t));
-  }
-
-  const ATTRS = ['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
-
-  // Override with bonus-aware + tag-aware scoring
-  window.scoreItemForStage = function(item, stage){
-    if(!stage) return 0;
-    // Normalize stage weights and include the global "weight" factor (defaults to 9 in original file)
-    const factor = (toNum(stage.weight||9))/9;
-    const stageW = {...stage};
-    ATTRS.forEach(a => stageW[a] = toNum(stageW[a]||0) * factor);
-
-    // Base sum by attributes, including *_bonus numeric fields
-    let base = 0;
-    for(const a of ATTRS){
-      const grade = gradeToScore(item[a]);
-      const bonus = toNum(item[a + '_bonus'] || 0);
-      // Stage-defined extra attrs: if a is in stage.extras and this attr is NOT main/sub (stage[a] == 0), add extras_pct
-    (function(){
-      try{
-        var extras = (typeof window.__getStageExtraAttrs==='function') ? __getStageExtraAttrs(stage) : [];
-        if (Array.isArray(extras) && extras.indexOf(a) !== -1){
-          var pct = (typeof stage[a] === 'number') ? stage[a] : (+stage[a]||0);
-          if (!pct){ // only when not main/sub
-            var ep = (typeof window.__getStageExtraPct==='function') ? __getStageExtraPct(stage) : 0.05;
-            grade = grade * (1 + ep);
-          }
-        }
-      }catch(e){}
-    })();
-    base += toNum(stageW[a]) * (grade + bonus);
-    }
-
-    // Apply per-stage tag bonus multiplicatively if any tag matches
-    const selectedStageId = stage.stage_id || "";
-    if(tagsMatch(item, selectedStageId)){
-      base *= (1 + TAG_BONUS_PCT/100);
-    }
-
-    // Apply star and part multipliers (unchanged from original)
-    return base * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
-  };
-
-  // Re-render if available so scores update immediately after load
-  if(typeof window.renderAll === 'function'){
-    document.addEventListener('DOMContentLoaded', ()=> window.renderAll());
-  }
-})();
-</script>
 <script>
-// === Bonus & Tag scoring patch v2 (percent-based weights) ===
-(function(){
-  // Per-stage tag list for 10% tag bonus (multiplicative)
-  const STAGE_TAGS = {
-    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
-    "[메인] 1-6 의혹 속으로": ["운동룩"],
-    "[메인] 1-7 '흑역사'": ["드레스"],
-    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
-    "[메인] 1-9 어둠 속에서": ["젠더리스"]
-  };
-  const TAG_BONUS_PCT = 10; // 태그 가중치 10%
 
-  const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
-  const gradeScore = (window.gradeScore) || {"SSS":3200,"SS":2612.7,"S":2089.35,"A":1690.65,"B":1309.8,"C":817.5,"-":0,"":0,"null":0};
-  const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
-  const STAR_MULT = (window.STAR_MULT) || [1.00,1.00,1.03,1.06,1.09,1.12,1.15];
-  const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
-  const PART_WEIGHTS = (window.PART_WEIGHTS) || {"헤어 스타일":0.5,"원피스":2,"아우터":0.2,"상의":1,"하의":1,"양말":0.3,"신발":0.4,"장식":0.2,"뷰티":0.1};
-
-  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
-  const normTag = (t)=> String(t||'').replace(/\s+/g,'');
-
-  function tagsMatch(item, stageId){
-    const stageTags = (STAGE_TAGS[stageId]||[]).map(normTag);
-    if(stageTags.length===0) return false;
-    const itemTags = new Set(parseTags(item.tags).map(normTag));
-    return stageTags.some(t => itemTags.has(t));
-  }
-
-  const ATTRS = ['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
-
-  // Interpret stage values as percent bonuses: 
-  //   20 -> x1.20, 10 -> x1.10, 1 -> x1.00 (demo), 0 -> ignore
-  function toPercentMultiplier(raw){
-    const r = toNum(raw||0);
-    if(r <= 0) return 0;          // 0 means this attr not used on this stage
-    if(r >= 2) return 1 + (r/100);// 10 => 1.10, 20 => 1.20
-    return 1;                      // 1 (demo/test stage) means neutral
-  }
-
-  // Override with bonus-aware + tag-aware + percent-based weights
-  window.scoreItemForStage = function(item, stage){
-    if(!stage) return 0;
-    const factor = (toNum(stage.weight||9))/9; // keep global weight scaling
-
-    let base = 0;
-    for(const a of ATTRS){
-      const mult = toPercentMultiplier(stage[a]);
-      if(mult === 0) continue; // stage doesn't care about this attr
-      const grade = gradeToScore(item[a]);
-      const bonus = toNum(item[a + '_bonus'] || 0);
-      base += mult * (grade + bonus);
-    }
-
-    // If stage defines no attrs (edge), fall back to equal weighting of all attrs
-    if(base === 0){
-      let tmp=0;
-      for(const a of ATTRS){
-        const grade = gradeToScore(item[a]);
-        const bonus = toNum(item[a + '_bonus'] || 0);
-        tmp += (grade + bonus);
-      }
-      base = tmp / ATTRS.length;
-    }
-
-    // Apply per-stage tag bonus multiplicatively if any tag matches
-    const selectedStageId = stage.stage_id || "";
-    if(tagsMatch(item, selectedStageId)){
-      base *= (1 + TAG_BONUS_PCT/100);
-    }
-
-    // Apply global factor, star, and part multipliers
-    return base * factor * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
-  };
-
-  // Re-render so scores update immediately after load
-  if(typeof window.renderAll === 'function'){
-    document.addEventListener('DOMContentLoaded', ()=> window.renderAll());
-  }
-})();
-</script>
 <script>
-// === Bonus & Tag scoring patch v3 (percent-based weights + percent-based *_bonus) ===
-(function(){
-  // Per-stage tag list for 10% tag bonus (multiplicative)
-  const STAGE_TAGS = {
-    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
-    "[메인] 1-6 의혹 속으로": ["운동룩"],
-    "[메인] 1-7 '흑역사'": ["드레스"],
-    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
-    "[메인] 1-9 어둠 속에서": ["젠더리스"]
-  };
-  const TAG_BONUS_PCT = 10; // 태그 가중치 10%
 
-  const toNum = (v)=> isNaN(Number(v)) ? 0 : Number(v);
-  const gradeScore = (window.gradeScore) || {"SSS":3200,"SS":2612.7,"S":2089.35,"A":1690.65,"B":1309.8,"C":817.5,"-":0,"":0,"null":0};
-  const gradeToScore = (g)=> gradeScore[(g||'').toString().toUpperCase()] ?? 0;
-  const STAR_MULT = (window.STAR_MULT) || [1.00,1.00,1.03,1.06,1.09,1.12,1.15];
-  const starMultiplier = (stars)=> STAR_MULT[Math.max(0, Math.min(6, Number(stars||0)))] || 1.00;
-  const PART_WEIGHTS = (window.PART_WEIGHTS) || {"헤어 스타일":0.5,"원피스":2,"아우터":0.2,"상의":1,"하의":1,"양말":0.3,"신발":0.4,"장식":0.2,"뷰티":0.1};
-
-  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
-  const normTag = (t)=> String(t||'').replace(/\s+/g,'');
-
-  function tagsMatch(item, stageId){
-    const stageTags = (STAGE_TAGS[stageId]||[]).map(normTag);
-    if(stageTags.length===0) return false;
-    const itemTags = new Set(parseTags(item.tags).map(normTag));
-    return stageTags.some(t => itemTags.has(t));
-  }
-
-  const ATTRS = ['flair','simple','elegant','lively','chic','cute','sexy','pure','cool','warm'];
-
-  // Interpret stage values as percent bonuses: 
-  //   20 -> x1.20, 10 -> x1.10, 1 -> x1.00 (demo), 0 -> ignore
-  function toPercentMultiplier(raw){
-    const r = toNum(raw||0);
-    if(r <= 0) return 0;          // 0 means this attr not used on this stage
-    if(r >= 2) return 1 + (r/100);// 10 => 1.10, 20 => 1.20
-    return 1;                      // 1 (demo/test stage) means neutral
-  }
-
-  // Override with: (grade * (1 + bonusPct/100)) * stageMultiplier
-  window.scoreItemForStage = function(item, stage){
-    if(!stage) return 0;
-    const factor = (toNum(stage.weight||9))/9; // keep global weight scaling
-
-    let base = 0;
-    for(const a of ATTRS){
-      const mult = toPercentMultiplier(stage[a]);
-      if(mult === 0) continue; // stage doesn't care about this attr
-      const grade = gradeToScore(item[a]);
-      const bonusPct = toNum(item[a + '_bonus'] || 0);
-      const attrScore = grade * (1 + (bonusPct/100)); // <-- 보너스는 퍼센트
-      base += mult * attrScore;
-    }
-
-    // If stage defines no attrs (edge), fall back to equal weighting of all attrs
-    if(base === 0){
-      let tmp=0;
-      for(const a of ATTRS){
-        const grade = gradeToScore(item[a]);
-        const bonusPct = toNum(item[a + '_bonus'] || 0);
-        tmp += grade * (1 + (bonusPct/100));
-      }
-      base = tmp / ATTRS.length;
-    }
-
-    // Apply per-stage tag bonus multiplicatively if any tag matches
-    const selectedStageId = stage.stage_id || "";
-    if(tagsMatch(item, selectedStageId)){
-      base *= (1 + TAG_BONUS_PCT/100);
-    }
-
-    // Apply global factor, star, and part multipliers
-    return base * factor * starMultiplier(item.stars) * (PART_WEIGHTS[item.part]||1);
-  };
-
-  // Re-render so scores update immediately after load
-  if(typeof window.renderAll === 'function'){
-    document.addEventListener('DOMContentLoaded', ()=> window.renderAll());
-  }
-})();
-</script>
 
 <script>
 function toThumb(u){
@@ -2987,16 +2770,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <script>
 // Single-file datasets removed (use iframe/postMessage only);
-window.stages = [{stage_id:"테스트-1", flair:1, simple:1, elegant:1, lively:1, chic:1, cute:1, sexy:1, pure:1, cool:1, warm:1, weight:9, tip1:"데모 스테이지"},
-{stage_id:"[메인] 1-2 섬에서의 약속", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:20, sexy:0, pure:10, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 청순 10%", extras:["활발","심플","청량"], extras_pct:5},
-  {stage_id:"[메인] 1-4 이성과 감정", flair:0, simple:0, elegant:0, lively:0, chic:20, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 섹시 10%, 태그 걸그룹스타일 10%", extras:["화려","청량","활발"], extras_pct:5, tag:"걸그룹스타일", tag_pct:10},
-  {stage_id:"[메인] 1-6 의혹 속으로", flair:0, simple:10, elegant:0, lively:20, chic:0, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 활발 20%, 서브 심플 10%, 태그 운동룩 10%", extras:["큐티","청량","청순"], extras_pct:5, tag:"운동룩", tag_pct:10},
-  {stage_id:"[메인] 1-7 '흑역사'", flair:0, simple:0, elegant:20, lively:0, chic:0, cute:0, sexy:10, pure:0, cool:0, warm:0, weight:9, tip1:"메인 우아 20%, 서브 섹시 10%, 태그 드레스 10%", extras:["청량","시크","심플"], extras_pct:5, tag:"드레스", tag_pct:10},
-  {stage_id:"[메인] 1-8 알지 못했던 일들", flair:0, simple:0, elegant:0, lively:10, chic:0, cute:20, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 큐티 20%, 서브 활발 10%, 태그 애니멀 10%", extras:["포근","청순","화려"], extras_pct:5, tag:"애니멀", tag_pct:10},
-  {stage_id:"[메인] 1-9 어둠 속에서", flair:0, simple:10, elegant:0, lively:0, chic:20, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 시크 20%, 서브 심플 10%, 태그 젠더리스 10%", tag:"젠더리스", tag_pct:10},
-  {stage_id:"[메인] 1-10 창조자", flair:0, simple:0, elegant:0, lively:0, chic:0, cute:10, sexy:0, pure:0, cool:0, warm:20, weight:9, tip1:"메인 포근 20%, 서브 큐티 10%"}
-,
-  {stage_id:"[메인] 3-6 마음의 기억", flair:0, simple:0, elegant:0, lively:10, chic:0, cute:0, sexy:0, pure:0, cool:0, warm:0, weight:9, tip1:"메인 화려 20%, 서브 활발 10%, 태그 걸그룹스타일 10%"}];
+window.stages = [{stage_id:"테스트-1", flair:1, simple:1, elegant:1, lively:1, chic:1, cute:1, sexy:1, pure:1, cool:1, 20%, 서브 큐티 10%"}];
 window.ITEMS = window.items;
 
 // Render hooks
@@ -3082,7 +2856,7 @@ document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loadin
 
       listEl.innerHTML = list.map(it=>{
         const stars=Math.max(0, Math.min(6, Number(it.stars||0)));
-        const tgs=(window.parseTags?window.parseTags(it.tags):[]);
+        const tgs = (window.getItemTags?window.parseTags((it && it.tags) ? it.tags : ''):(window.parseTags?window.parseTags(it.tags):[]));
         const img = it.img ? `<img class="thumb" src="${it.img}" alt="${it.name}">` : '';
         return `<div class="card">
           <div class="row thumbrow">${img}<h3 style="margin:0;flex:1;display:flex;justify-content:space-between;align-items:center">
@@ -3090,7 +2864,7 @@ document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loadin
             <button class="copy-btn" onclick="copyText('${(it.name||'').replace(/'/g, "\'")}')">이름 복사</button>
           </h3></div>
           <div class="badges"><span class="badge">${it.part||'-'}</span><span class="badge">${stars}★</span>${it._owned?'<span class="badge owned">보유</span>':''}</div>
-          <div>${tgs.map(x=>`<span class='pill'>${x}</span>`).join('')} </div>
+          <div class="badges tags">${tgs.map(x=>`<span class='badge tag'>#${x}</span>`).join('')}</div>
           <div class="score">점수: ${Number(it.score).toFixed(2)}</div>
         </div>`;
       }).join('');
@@ -3184,7 +2958,7 @@ document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loadin
 
       listEl.innerHTML = list.map(it=>{
         const stars = Math.max(0, Math.min(6, Number(it.stars||0)));
-        const tgs = (window.parseTags?window.parseTags(it.tags):[]);
+        const tgs = (window.getItemTags?window.parseTags((it && it.tags) ? it.tags : ''):(window.parseTags?window.parseTags(it.tags):[]));
         const img = it.img ? `<img class="thumb" src="${it.img}" alt="${it.name}">` : '';
         const reqBadge = it.__req ? `<span class="req-badge">필수</span>` : '';
         return `<div class="card">
@@ -3193,7 +2967,7 @@ document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loadin
             <button class="copy-btn" onclick="copyText('${(it.name||'').replace(/'/g, "\\'")}')">이름 복사</button>
           </h3></div>
           <div class="badges"><span class="badge">${it.part||'-'}</span><span class="badge">${stars}★</span>${it._owned?'<span class="badge owned">보유</span>':''}</div>
-          <div>${tgs.map(x=>`<span class='pill'>${x}</span>`).join('')} </div>
+          <div class="badges tags">${tgs.map(x=>`<span class='badge tag'>#${x}</span>`).join('')}</div>
           <div class="score">점수: ${Number(it.score).toFixed(2)}</div>
         </div>`;
       }).join('');
@@ -3211,6 +2985,155 @@ document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loadin
 })();
 </script>
 
+
+<script>
+(function(){
+  const norm = s => String(s||'').trim();
+  const split = s => String(s||'').split(/[;,\|\/·\u3001\u3002\uFF0C\uFF0E\[\]\(\)\{\}\s]+/).map(x=>x.trim()).filter(Boolean);
+  const uniq = arr => Array.from(new Set(arr.map(norm))).filter(Boolean);
+  function deepCollectStrings(obj, bucket){
+    if(!obj) return;
+    const t = typeof obj;
+    if(t==='string'){ bucket.push(obj); return; }
+    if(t!=='object') return;
+    if(Array.isArray(obj)){ for(const v of obj) deepCollectStrings(v, bucket); return; }
+    for(const k in obj){
+      if(/img|image|thumb|url/i.test(k)) continue;
+      deepCollectStrings(obj[k], bucket);
+    }
+  }
+  window.getItemTags = function(it){
+    try{
+      let raw = it.tags ?? it.tag ?? it["태그"] ?? "";
+      let list = Array.isArray(raw) ? raw.map(norm) : split(raw);
+      if(list.length===0){
+        if(it.tag_list) list = Array.isArray(it.tag_list) ? it.tag_list : split(it.tag_list);
+        if(it.Tags) list = list.concat(split(it.Tags));
+      }
+      if(list.length===0){
+        const buf=[]; deepCollectStrings(it, buf);
+        const words = buf.join(" ");
+        list = uniq((words.match(/[#\u0023]?([가-힣A-Za-z0-9]+(?:스타일)?)/g) || []).map(s=>s.replace(/^#/,"")));
+      }
+      return uniq(list);
+    }catch(e){ return []; }
+  };
+})();
+</script>
+
+
+<!-- Auto Tag Bonus Patch (append) -->
+<script>
+(function(){
+  // 1) Global tag bonus (editable)
+  window.TAG_BONUS_PCT = (typeof window.TAG_BONUS_PCT === 'number') ? window.TAG_BONUS_PCT : 30;
+
+  // 2) Extract tags from stage.tip1 (e.g., "..., 태그 유럽풍 30%, 드레스 30%")
+  if(typeof window.tagsFromStage !== 'function'){
+    window.tagsFromStage = function(stage){
+      try{
+        const out = [];
+        if(!stage) return out;
+        const t = String(stage.tip1||"");
+        const i = t.indexOf("태그");
+        if(i === -1) return out;
+        const s = t.slice(i + 2); // after "태그"
+        s.split(/[\s,·]+/).forEach(tok=>{
+          const x = String(tok||"")
+            .replace(/[%\d]+/g,"")
+            .trim();
+          if(x && x !== "태그") out.push(x);
+        });
+        return Array.from(new Set(out));
+      }catch(e){ return []; }
+    };
+  }
+
+  // 3) Monkey-patch scoreItemForStage to inject tag bonus (once)
+  if(typeof window.scoreItemForStage === 'function'){
+    const _orig = window.scoreItemForStage;
+    window.scoreItemForStage = function(item, stage){
+      let out = _orig(item, stage);
+      try{
+        const stageTags = (window.tagsFromStage ? window.tagsFromStage(stage) : []);
+        // parse item tags: either array, or comma/space separated string
+        const raw = item && item.tags;
+        const itemTags = Array.isArray(raw) ? raw :
+          String(raw||'').split(/[#,;\s,·]+/).filter(Boolean);
+        const hit = stageTags.length ? stageTags.some(t => itemTags.includes(t)) : false;
+        if(hit){
+          out = out * (1 + (window.TAG_BONUS_PCT||30)/100);
+        }
+      }catch(e){ /* ignore */ }
+      return out;
+    };
+    // expose for quick sanity check
+    window.__tag_patch_installed__ = true;
+  }
+})();
+</script>
+
+
+<script>
+// === Unified Tag Bonus Control (Single Source) ===
+// Edit ONLY this block to change tag mappings or bonus percent.
+(function(){
+
+  // Stage-specific tag mapping
+  const STAGE_TAGS = {
+    "[메인] 1-4 이성과 감정": ["걸그룹스타일"],
+    "[메인] 1-6 의혹 속으로": ["운동룩"],
+    "[메인] 1-7 '흑역사'": ["드레스"],
+    "[메인] 1-8 알지 못했던 일들": ["애니멀"],
+    "[메인] 1-9 어둠 속에서": ["젠더리스"],
+    "[메인] 1-11 파도가 친 뒤의 고요함" : ["홈웨어"],
+    "[메인] 1-12 깊어진 밤하늘" : ["바캉스스타일"],
+    "[메인] 2-4 비어있는 기억" : ["동화풍"],
+    "[메인] 2-5 폭풍 전야" : ["성숙한스타일"],
+    "[메인] 2-8 가족의 이름으로" : ["걸그룹스타일"],
+    "[메인] 3-1 진실을 가린 그림자" : ["스트릿펑크"],
+    "[메인] 3-6 마음의 기억" : ["걸그룹스타일"],
+    "[메인] 3-7 기억 속의 무대" : ["핫걸"],
+    "[메인] 3-11 남은 세 사람" : ["스쿨룩"],
+    "[메인] 4-2 슬픈 노래" : ["홈웨어"],
+    "[메인] 4-4 거래" : ["성숙한스타일"],
+    "[메인] 4-5 약속" : ["스트릿펑크"],
+    "[메인] 4-10 그녀의 '깃털'" : ["드레스"],
+    "[메인] 5-7 통찰'" : ["모리걸"],
+    "[메인] 5-8 암실'" : ["드레스"],
+    "[메인] 6-2 어둠 속 불빛'" : ["유럽풍"],
+    "[메인] 6-5 드러나는 진실": ["트렌디스냅샷"]
+    "[메인] 6-9 끝없는 대낮": ["중국풍"]
+  };
+
+  // Global tag bonus percent (applied multiplicatively ONCE)
+  const TAG_BONUS_PCT = 30;
+
+  // Keep reference to original scoring
+  const _origScore = window.scoreItemForStage || scoreItemForStage;
+
+  // Tag parser (splits by whitespace, comma, semicolon)
+  const parseTags = (t)=> String(t||'').split(/[;,\s]+/).map(s=>s.trim()).filter(Boolean);
+
+  window.scoreItemForStage = function(item, stage){
+    let score = _origScore(item, stage); // already includes star*part multipliers
+    try{
+      if(!item || !stage) return score;
+      const sid = String(stage.stage_id||"");
+      const stageTags = STAGE_TAGS[sid] || [];
+      if(stageTags.length === 0) return score;
+      const itemTags = parseTags(item.tags);
+      const hit = stageTags.some(t => itemTags.includes(t));
+      if(hit){
+        score *= (1 + TAG_BONUS_PCT/100);
+      }
+    }catch(e){ /* no-op */ }
+    return score;
+  };
+
+})();
+// === End Unified Tag Bonus Control ===
+</script>
 </body>
 </html>
 <script>(function(){if(!window.__bootDone){window.__bootDone=false;}function canInit(){try{return Array.isArray(window.items)&&window.items.length>0&&Array.isArray(window.stages)&&window.stages.length>0;}catch(e){return false;}}function tryInitNow(){if(window.__bootDone)return;if(canInit()){window.__bootDone=true;if(typeof init==='function')init();return true;}return false;}document.addEventListener('DOMContentLoaded', function(){ try{ if(window._loading) window._loading.show(true);}catch(e){}; try{ if(typeof renderAll==='function') renderAll(); }catch(e){};if(tryInitNow())return;let n=0;const t=setInterval(function(){n++;if(tryInitNow()||n>30){clearInterval(t);}},200);});window.addEventListener('load',tryInitNow);window.addEventListener('message',function(){setTimeout(tryInitNow,0);},true);})();</script>
