@@ -29,14 +29,8 @@
   .pbtn[disabled]:hover{background:#fff}
   .pbtn.active{background:#2b115f;color:#fff;border-color:#2b115f}
   .pdots{color:#777;font-size:12px;padding:0 4px}
-  dialog{border:0;padding:0;border-radius:18px;max-width:min(980px,96vw);width:980px;box-shadow:0 20px 70px rgba(0,0,0,.22);position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);margin:0}
+  dialog{position:fixed;inset:0;margin:auto;border:0;padding:0;border-radius:18px;max-width:min(980px,96vw);width:980px;box-shadow:0 20px 70px rgba(0,0,0,.22)}
   dialog::backdrop{background:rgba(0,0,0,.35)}
-  /* modal fix (prevent dialog appearing below viewport on mobile) */
-  @media (max-width: 520px){
-    dialog{width:96vw;max-width:96vw;}
-    .dlg{max-height:92vh;}
-  }
-
   .dlg{display:flex;flex-direction:column;max-height:88vh;background:#fff;border-radius:18px;overflow:hidden}
   .dlgHead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:14px 16px;border-bottom:1px solid #eee;background:#fff}
   .dlgTitle{display:flex;flex-direction:column;gap:4px}
@@ -204,6 +198,9 @@
   const PER_PAGE = 20;
   let currentPage = 1;
 
+  // keep page scroll position when opening/closing dialog (mobile scroll-jump fix)
+  let __savedScrollY = 0;
+
   // --- iframe auto-resize (monotonic: never report smaller height) ---
   let __ph_raf = 0;
   let __ph_max = 0;
@@ -277,12 +274,12 @@ function trim(s){ return norm(s).trim(); }
 
   // ✅ 리스트 화면에서는 중국어를 보여주지 않음 (영어/일본어 우선)
   function listMainName(set){
-    return trim(set.name_en) || trim(set.name_jp) || trim(set.name_na) || trim(set.name_kr) || trim(set.name) || "이름없음";
+    return trim(set.name_jp) || trim(set.name_en) || trim(set.name_na) || trim(set.name_kr) || trim(set.name) || "이름없음";
   }
 
   function listSubName(set){
     // 서브 라인은 일본어만 (없으면 비움)
-    return trim(set.name_jp) || "";
+    return trim(set.name_en) || "";
   }
 
   // ✅ 상세 팝업에서는 중국어 포함 전체 이름 표시
@@ -580,17 +577,29 @@ function trim(s){ return norm(s).trim(); }
         // variants
     renderVariants(set);
 
-    // ✅ keep current scroll position when opening modal (mobile Safari/Chrome can jump to <dialog>)
-     const __sx = (window.pageXOffset||0);
-     const __sy = (window.pageYOffset||0);
-     if(dlg && typeof dlg.showModal === "function") dlg.showModal();
-     else if(dlg) dlg.setAttribute("open","open");
-     // restore scroll (next frame) + focus without scrolling if possible
-     requestAnimationFrame(()=>{
-       try{ window.scrollTo(__sx, __sy); }catch(e){}
-       try{ closeBtn && closeBtn.focus && closeBtn.focus({preventScroll:true}); }catch(e){}
-     });
-     schedulePostHeight(true);
+// ✅ 모바일에서 showModal()이 페이지를 아래로 점프시키는 경우가 있어, 현재 스크롤을 저장/복원
+    __savedScrollY = (window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0);
+
+    if(dlg && dlg.showModal) dlg.showModal();
+
+    // ✅ 팝업(탭) 내부는 항상 첫번째(맨 위)부터 보이게
+    try{
+      const bodyEl = dlg.querySelector(".dlgBody");
+      if(bodyEl) bodyEl.scrollTop = 0;
+    }catch(e){}
+
+    // ✅ 페이지 스크롤은 유지 (모달이 열려도 현재 위치 그대로)
+    requestAnimationFrame(()=>{
+      try{ window.scrollTo(0, __savedScrollY); }catch(e){}
+      try{
+        const bodyEl = dlg.querySelector(".dlgBody");
+        if(bodyEl) bodyEl.scrollTop = 0;
+      }catch(e){}
+    });
+    setTimeout(()=>{
+      try{ window.scrollTo(0, __savedScrollY); }catch(e){}
+    }, 0);
+
   }
 
 
@@ -717,7 +726,7 @@ function trim(s){ return norm(s).trim(); }
     });
   }
 
-  closeBtn.addEventListener("click", ()=>{ try{ dlg.close(); }catch(e){} });
+  closeBtn.addEventListener("click", ()=>{ try{ dlg.close(); }catch(e){} try{ window.scrollTo(0, __savedScrollY); }catch(e){} });
 
   // ✅ 빈 화면(다이얼로그 바깥 영역) 클릭 시 닫기
   // dialog는 backdrop 자체에 이벤트가 안 잡히므로,
