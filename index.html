@@ -2,6 +2,15 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<meta name="application-name" content="가계부">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="가계부">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#111827">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0iIzExMTgyNyIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM1YjhkZjAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0idXJsKCNnKSIvPjx0ZXh0IHg9IjI1NiIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMwMCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLFNlZ29lIFVJIEVtb2ppLHNlcmlmIj7wn5KwPC90ZXh0Pjwvc3ZnPg==">
+<link rel="manifest" href="data:application/manifest+json;base64,eyJuYW1lIjogIlx1YWMwMFx1YWNjNFx1YmQ4MCIsICJzaG9ydF9uYW1lIjogIlx1YWMwMFx1YWNjNFx1YmQ4MCIsICJkZXNjcmlwdGlvbiI6ICJcdWFjMWNcdWM3NzggXHVhYzAwXHVhY2M0XHViZDgwIFx1YzU3MSIsICJzdGFydF91cmwiOiAiLiIsICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLCAib3JpZW50YXRpb24iOiAicG9ydHJhaXQiLCAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGIwZTE3IiwgInRoZW1lX2NvbG9yIjogIiMxMTE4MjciLCAiaWNvbnMiOiBbeyJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNGJXeHVjejBpYUhSMGNEb3ZMM2QzZHk1M015NXZjbWN2TWpBd01DOXpkbWNpSUhacFpYZENiM2c5SWpBZ01DQTFNVElnTlRFeUlqNDhjbVZqZENCM2FXUjBhRDBpTlRFeUlpQm9aV2xuYUhROUlqVXhNaUlnY25nOUlqRXdNQ0lnWm1sc2JEMGlJekV4TVRneU55SXZQanhrWldaelBqeHNhVzVsWVhKSGNtRmthV1Z1ZENCcFpEMGlaeUlnZURFOUlqQWlJSGt4UFNJd0lpQjRNajBpTVNJZ2VUSTlJakVpUGp4emRHOXdJRzltWm5ObGREMGlNQ1VpSUhOMGIzQXRZMjlzYjNJOUlpTTFZamhrWmpBaUx6NDhjM1J2Y0NCdlptWnpaWFE5SWpFd01DVWlJSE4wYjNBdFkyOXNiM0k5SWlNNFlqVmpaallpTHo0OEwyeHBibVZoY2tkeVlXUnBaVzUwUGp3dlpHVm1jejQ4Y21WamRDQjNhV1IwYUQwaU5URXlJaUJvWldsbmFIUTlJalV4TWlJZ2NuZzlJakV3TUNJZ1ptbHNiRDBpZFhKc0tDTm5LU0l2UGp4MFpYaDBJSGc5SWpJMU5pSWdlVDBpTXpZd0lpQjBaWGgwTFdGdVkyaHZjajBpYldsa1pHeGxJaUJtYjI1MExYTnBlbVU5SWpNd01DSWdabTl1ZEMxbVlXMXBiSGs5SWtGd2NHeGxJRU52Ykc5eUlFVnRiMnBwTEZObFoyOWxJRlZKSUVWdGIycHBMSE5sY21sbUlqN3duNUt3UEM5MFpYaDBQand2YzNablBnPT0iLCAic2l6ZXMiOiAiMTkyeDE5MiIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwifSwgeyJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCNGJXeHVjejBpYUhSMGNEb3ZMM2QzZHk1M015NXZjbWN2TWpBd01DOXpkbWNpSUhacFpYZENiM2c5SWpBZ01DQTFNVElnTlRFeUlqNDhjbVZqZENCM2FXUjBhRDBpTlRFeUlpQm9aV2xuYUhROUlqVXhNaUlnY25nOUlqRXdNQ0lnWm1sc2JEMGlJekV4TVRneU55SXZQanhrWldaelBqeHNhVzVsWVhKSGNtRmthV1Z1ZENCcFpEMGlaeUlnZURFOUlqQWlJSGt4UFNJd0lpQjRNajBpTVNJZ2VUSTlJakVpUGp4emRHOXdJRzltWm5ObGREMGlNQ1VpSUhOMGIzQXRZMjlzYjNJOUlpTTFZamhrWmpBaUx6NDhjM1J2Y0NCdlptWnpaWFE5SWpFd01DVWlJSE4wYjNBdFkyOXNiM0k5SWlNNFlqVmpaallpTHo0OEwyeHBibVZoY2tkeVlXUnBaVzUwUGp3dlpHVm1jejQ4Y21WamRDQjNhV1IwYUQwaU5URXlJaUJvWldsbmFIUTlJalV4TWlJZ2NuZzlJakV3TUNJZ1ptbHNiRDBpZFhKc0tDTm5LU0l2UGp4MFpYaDBJSGc5SWpJMU5pSWdlVDBpTXpZd0lpQjBaWGgwTFdGdVkyaHZjajBpYldsa1pHeGxJaUJtYjI1MExYTnBlbVU5SWpNd01DSWdabTl1ZEMxbVlXMXBiSGs5SWtGd2NHeGxJRU52Ykc5eUlFVnRiMnBwTEZObFoyOWxJRlZKSUVWdGIycHBMSE5sY21sbUlqN3duNUt3UEM5MFpYaDBQand2YzNablBnPT0iLCAic2l6ZXMiOiAiNTEyeDUxMiIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwiLCAicHVycG9zZSI6ICJhbnkgbWFza2FibGUifV19">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0iIzExMTgyNyIvPjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPjxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM1YjhkZjAiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiM4YjVjZjYiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjEwMCIgZmlsbD0idXJsKCNnKSIvPjx0ZXh0IHg9IjI1NiIgeT0iMzYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjMwMCIgZm9udC1mYW1pbHk9IkFwcGxlIENvbG9yIEVtb2ppLFNlZ29lIFVJIEVtb2ppLHNlcmlmIj7wn5KwPC90ZXh0Pjwvc3ZnPg==">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>가계부</title>
 <style>
@@ -142,6 +151,225 @@ tr:hover td{background:rgba(91,141,240,.03)}
 .alert{padding:10px 14px;border-radius:9px;font-size:12px;margin-bottom:10px}
 .alert-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--ye)}
 .alert-danger{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--rd)}
+
+/* ═══════════════════════════════════════
+   모바일 최적화 (768px 이하)
+═══════════════════════════════════════ */
+@media screen and (max-width: 768px) {
+
+  /* 레이아웃: 세로 전환 */
+  body {
+    flex-direction: column !important;
+  }
+
+  /* 사이드바 → 하단 탭바 */
+  .sb {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: auto !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border-right: none !important;
+    border-top: 1px solid var(--bd) !important;
+    order: 2;
+    flex-shrink: 0 !important;
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+  }
+
+  /* 로고, 섹션 타이틀 숨기기 */
+  .sb .logo,
+  .sb .nsec {
+    display: none !important;
+  }
+
+  /* 탭 아이템 */
+  .ni {
+    flex: 0 0 auto !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 12px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-top: 2px solid transparent !important;
+    gap: 3px !important;
+    min-width: 64px !important;
+    font-size: 10px !important;
+  }
+
+  .ni.on {
+    border-left: none !important;
+    border-top: 2px solid var(--ac) !important;
+    background: rgba(91,141,240,.1) !important;
+    padding-left: 12px !important;
+  }
+
+  /* 메인 영역 */
+  .mw {
+    flex: 1 !important;
+    min-height: 0 !important;
+    order: 1;
+    overflow: hidden !important;
+  }
+
+  /* 툴바 */
+  .tb {
+    padding: 0 12px !important;
+    height: 48px !important;
+    min-height: 48px !important;
+  }
+
+  .tb-ttl {
+    font-size: 13px !important;
+  }
+
+  /* 콘텐츠 */
+  .content {
+    padding: 12px !important;
+  }
+
+  /* 그리드 → 1열 */
+  .g2, .g3, .g4 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* 스탯 카드 그리드 → 2열 */
+  .g4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* 카드 패딩 축소 */
+  .card {
+    padding: 14px !important;
+  }
+
+  .stat {
+    padding: 13px 14px !important;
+  }
+
+  .sv {
+    font-size: 17px !important;
+  }
+
+  /* 모달 → 하단 시트 */
+  .modal-bg {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+
+  .modal {
+    border-radius: 18px 18px 0 0 !important;
+    max-height: 90vh !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 20px 16px !important;
+  }
+
+  /* 테이블 스크롤 */
+  .tw {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  table {
+    min-width: 500px !important;
+    font-size: 11px !important;
+  }
+
+  th, td {
+    padding: 8px 10px !important;
+  }
+
+  /* 구독 멤버 그리드 */
+  .sub-members {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* 버튼 크기 */
+  .btn-sm {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* 달력 */
+  .cal-cell {
+    min-height: 54px !important;
+    padding: 4px !important;
+  }
+
+  .cal-dn {
+    font-size: 10px !important;
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .cal-evt {
+    font-size: 8px !important;
+    padding: 1px 3px !important;
+  }
+
+  .cal-amt-in, .cal-amt-ex {
+    font-size: 8px !important;
+  }
+
+  /* pill 줄바꿈 */
+  .pill-wrap {
+    gap: 4px !important;
+  }
+
+  .pill {
+    padding: 4px 10px !important;
+    font-size: 10px !important;
+  }
+
+  /* 페이지 헤더 */
+  .flex.jb.ac.mb12 {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+}
+
+/* ═══════════════════════════════════════
+   소형 모바일 (480px 이하)
+═══════════════════════════════════════ */
+@media screen and (max-width: 480px) {
+  .g4 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .sv {
+    font-size: 15px !important;
+  }
+
+  .tb-ttl {
+    font-size: 12px !important;
+    max-width: 120px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  .ni {
+    min-width: 56px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+  }
+}
+
+
+.ni-icon { font-size: 16px; flex-shrink: 0; }
+.ni-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+@media screen and (max-width: 768px) {
+  .ni-icon { font-size: 20px; }
+  .ni-text { font-size: 9px; color: var(--t2); }
+  .ni.on .ni-text { color: var(--ac); }
+}
 </style>
 </head>
 <body>
@@ -152,39 +380,39 @@ tr:hover td{background:rgba(91,141,240,.03)}
     <div><h1>가계부</h1><p>My Finance</p></div>
   </div>
   <div class="nsec">홈</div>
-  <div class="ni" data-page="dashboard">🏠 대시보드</div>
+  <div class="ni" data-page="dashboard"><span class="ni-icon">🏠</span><span class="ni-text">대시보드</span></div>
   <div class="nsec">자산/부채</div>
-  <div class="ni" data-page="networth">💎 자산·부채 현황</div>
-  <div class="ni" data-page="forex">💱 외화 포트폴리오</div>
+  <div class="ni" data-page="networth"><span class="ni-icon">💎</span><span class="ni-text">자산·부채 현황</span></div>
+  <div class="ni" data-page="forex"><span class="ni-icon">💱</span><span class="ni-text">외화 포트폴리오</span></div>
   <div class="nsec">계좌/카드</div>
-  <div class="ni" data-page="accounts">🏦 계좌·카드 관리</div>
-  <div class="ni" data-page="balance">📋 잔고 보고서</div>
+  <div class="ni" data-page="accounts"><span class="ni-icon">🏦</span><span class="ni-text">계좌·카드 관리</span></div>
+  <div class="ni" data-page="balance"><span class="ni-icon">📋</span><span class="ni-text">잔고 보고서</span></div>
   <div class="nsec">거래</div>
-  <div class="ni" data-page="calendar">📆 거래 달력</div>
-  <div class="ni" data-page="transactions">💳 수입 / 지출</div>
-  <div class="ni" data-page="fixed">🔁 고정비용</div>
+  <div class="ni" data-page="calendar"><span class="ni-icon">📆</span><span class="ni-text">거래 달력</span></div>
+  <div class="ni" data-page="transactions"><span class="ni-icon">💳</span><span class="ni-text">수입 / 지출</span></div>
+  <div class="ni" data-page="fixed"><span class="ni-icon">🔁</span><span class="ni-text">고정비용</span></div>
   <div class="nsec">부채</div>
-  <div class="ni" data-page="installment">📊 할부 관리</div>
-  <div class="ni" data-page="loan">🏦 대출 / 변제</div>
-  <div class="ni" data-page="rent">🏠 월세 / 보증금</div>
+  <div class="ni" data-page="installment"><span class="ni-icon">📊</span><span class="ni-text">할부 관리</span></div>
+  <div class="ni" data-page="loan"><span class="ni-icon">🏦</span><span class="ni-text">대출 / 변제</span></div>
+  <div class="ni" data-page="rent"><span class="ni-icon">🏠</span><span class="ni-text">월세 / 보증금</span></div>
   <div class="nsec">보고서</div>
-  <div class="ni" data-page="monthly">📅 월간 보고서</div>
-  <div class="ni" data-page="yearly">📈 연간 보고서</div>
+  <div class="ni" data-page="monthly"><span class="ni-icon">📅</span><span class="ni-text">월간 보고서</span></div>
+  <div class="ni" data-page="yearly"><span class="ni-icon">📈</span><span class="ni-text">연간 보고서</span></div>
   <div class="nsec">생활 관리</div>
-  <div class="ni" data-page="datewallet">💑 데이트 통장</div>
-  <div class="ni" data-page="dutch">🍽️ 더치페이/정산</div>
-  <div class="ni" data-page="goals">🎯 저축 목표</div>
-  <div class="ni" data-page="emergency">🆘 비상금 관리</div>
-  <div class="ni" data-page="points">⭐ 포인트 관리</div>
-  <div class="ni" data-page="memos">📝 가계부 메모</div>
+  <div class="ni" data-page="datewallet"><span class="ni-icon">💑</span><span class="ni-text">데이트 통장</span></div>
+  <div class="ni" data-page="dutch"><span class="ni-icon">🍽️</span><span class="ni-text">더치페이/정산</span></div>
+  <div class="ni" data-page="goals"><span class="ni-icon">🎯</span><span class="ni-text">저축 목표</span></div>
+  <div class="ni" data-page="emergency"><span class="ni-icon">🆘</span><span class="ni-text">비상금 관리</span></div>
+  <div class="ni" data-page="points"><span class="ni-icon">⭐</span><span class="ni-text">포인트 관리</span></div>
+  <div class="ni" data-page="memos"><span class="ni-icon">📝</span><span class="ni-text">가계부 메모</span></div>
   <div class="nsec">분석</div>
-  <div class="ni" data-page="pattern">📊 소비 패턴</div>
+  <div class="ni" data-page="pattern"><span class="ni-icon">📊</span><span class="ni-text">소비 패턴</span></div>
   <div class="nsec">구독</div>
-  <div class="ni" data-page="subshare">📺 구독 셰어 관리</div>
+  <div class="ni" data-page="subshare"><span class="ni-icon">📺</span><span class="ni-text">구독 셰어 관리</span></div>
   <div class="nsec">설정</div>
-  <div class="ni" data-page="categories">🏷️ 카테고리 설정</div>
-  <div class="ni" data-page="budget">🎯 예산 설정</div>
-  <div class="ni" data-page="settings">⚙️ 환경 설정</div>
+  <div class="ni" data-page="categories"><span class="ni-icon">🏷️</span><span class="ni-text">카테고리 설정</span></div>
+  <div class="ni" data-page="budget"><span class="ni-icon">🎯</span><span class="ni-text">예산 설정</span></div>
+  <div class="ni" data-page="settings"><span class="ni-icon">⚙️</span><span class="ni-text">환경 설정</span></div>
 </nav>
 
 <div class="mw">
@@ -194,6 +422,7 @@ tr:hover td{background:rgba(91,141,240,.03)}
       <button class="btn bg btn-sm" id="btn-prev-month">‹</button>
       <span id="month-label" style="font-size:13px;font-weight:700;min-width:80px;text-align:center"></span>
       <button class="btn bg btn-sm" id="btn-next-month">›</button>
+      <button class="btn bg btn-sm" id="btn-install-pwa" style="display:none" title="앱으로 설치">📲</button>
       <button class="btn bg btn-sm" id="btn-theme-toggle">☀️</button>
       <button class="btn bp btn-sm" id="btn-add-tx">＋ 거래</button>
     </div>
@@ -827,6 +1056,45 @@ tr:hover td{background:rgba(91,141,240,.03)}
 <div id="toast-wrap" style="position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:5px"></div>
 
 <script>
+
+// Service Worker 등록 (PWA 설치 가능하게)
+if('serviceWorker' in navigator){
+  var swCode = `
+self.addEventListener('install', function(e){
+  e.waitUntil(
+    caches.open('gaegyebu-v1').then(function(cache){
+      return cache.addAll(['.']);
+    }).catch(function(){})
+  );
+});
+self.addEventListener('fetch', function(e){
+  e.respondWith(
+    caches.match(e.request).then(function(r){
+      return r || fetch(e.request).catch(function(){return new Response('offline')});
+    })
+  );
+});
+`;
+  var blob = new Blob([swCode], {type:'application/javascript'});
+  var swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(function(){});
+}
+
+// 홈화면 추가 배너 처리
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  deferredPrompt = e;
+  // 설치 버튼 표시
+  var btn = document.getElementById('btn-install-pwa');
+  if(btn) btn.style.display = 'inline-flex';
+});
+window.addEventListener('appinstalled', function(){
+  var btn = document.getElementById('btn-install-pwa');
+  if(btn) btn.style.display = 'none';
+  deferredPrompt = null;
+});
+
 
 // ============================================================
 // DATA
